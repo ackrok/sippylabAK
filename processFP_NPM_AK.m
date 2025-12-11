@@ -1,13 +1,12 @@
-addpath(genpath('/Users/akrok/Desktop/Sippy Lab/2AFC'));
-addpath(genpath('/Users/akrok/Desktop/Sippy Lab/MATLAB'));
-addpath(genpath('/Users/akrok/Documents/GitHub/ach-paper_v3/ach-paper-v3/gen'));
-addpath(genpath('/Users/akrok/Documents/GitHub/T-Lab-Photometry_210303'));
-addpath(genpath('/Users/akrok/Documents/GitHub/T-Lab_Toolbox/trunk'));
-savepath
+addpathSippyAK
 
 selectDir = uigetdir(); % pop-up window to select file directory
 cd(selectDir); % open file directors
-dayName = 'JT025-251205';
+
+%%
+mouse = inputdlg('Enter Mouse ID', 'Input', 1, {'JT0XX'});
+date = inputdlg('Enter Recording Date', 'Input', 1, {'YYMMDD'});
+dayName = sprintf('%s-%s',mouse{1},date{1});
 
 FramesFile=dir('Frames*.csv'); 
 Frames=table2array(GetBonsai_PhotometryFrames(FramesFile.name));
@@ -34,6 +33,9 @@ data = struct;
 data.ID = dayName;
 data.acq.FPnames = {'5-HT','rDA'};
 data.acq.nFPchan = 2;
+cutLength = floor(size(signalRaw_grn,1)/300)*300;
+signalRaw_grn = signalRaw_grn(1:cutLength,:);
+signalRaw_red = signalRaw_red(1:cutLength,:);
 data.acq.time{1} = signalRaw_grn(:,1); data.acq.time{2} = signalRaw_red(:,1);
 data.acq.FP{1} = signalRaw_grn(:,2); data.acq.FP{2} = signalRaw_red(:,2);
 
@@ -51,9 +53,20 @@ params.FP.interpType = 'linear'; params.FP.fitType = 'interp';
 params.FP.winSize = 10; params.FP.winOv = 0; params.FP.basePrc = 5;
 data.gen.params = params;
 
-data.beh = beh;
+data.beh.bonsai = beh;
 
 [data] = processFP_NPM(data,params);
+[dFF] = baselineFP_SM(data.acq.FP{1}, data.gen.acqFs, params);
+
+%% align time stamps for behavioral events (hits) to photometry time stamps
+% 
+filename=dir('*StateTransitions.csv');
+statetrans=GetBonsai_Pho_StateTransitions_Celeste(filename.name);
+beh = alignBehTStoPhotoTS(data, statetrans); 
+% vectors with index as frame relative to photometry signal
+
+beh.bonsai = data.beh.bonsai;
+data.beh = beh; 
 
 %% PLOT RW FP
 fig = figure; hold on
