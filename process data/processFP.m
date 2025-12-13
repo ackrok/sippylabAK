@@ -1,5 +1,5 @@
-function [data] = processFP_NPM(data,params)
-%Process Fiber Photometry acquired with Neurophotometrics system
+function [data] = processFP(data,params)
+%Process Fiber Photometry
 %
 %   [data] = processFP(data,params)
 %
@@ -19,8 +19,7 @@ function [data] = processFP_NPM(data,params)
 %   Output:
 %   - data - Updated data structure containing processed data
 %
-%   Originally written by: Pratik Mistry 2019
-%   Edited by: Anya Krok 2025
+%   Author: Pratik Mistry 2019
 
 nAcq = length(data.acq);
 lpCut = params.FP.lpCut; filtOrder = params.FP.filtOrder;
@@ -38,6 +37,7 @@ Fs = rawFs/dsRate;
 data.gen.Fs = Fs;
 
 for n = 1:nAcq
+    L = length(data.acq(n).time);
     nFP = data.acq(n).nFPchan;
     FPnames = data.acq(n).FPnames;
     data.final(n).FPnames = FPnames;
@@ -45,6 +45,7 @@ for n = 1:nAcq
     data.final(n).FP = cell(nFP,1);
     data.final(n).nbFP = cell(nFP,1);
     data.final(n).FPbaseline = cell(nFP,1);
+    L = length(1:dsRate:L);
     for x = 1:nFP
         rawFP = data.acq(n).FP{x};
         nbFP = filterFP(rawFP,rawFs,lpCut,filtOrder,'lowpass');
@@ -53,9 +54,7 @@ for n = 1:nAcq
         data.final(n).FP{x} = FP;
         data.final(n).nbFP{x} = nbFP;
         data.final(n).FPbaseline{x} = baseline;
-        L = length(data.acq(n).time{x}); 
-        timeVec = [1:length(1:dsRate:L)]/Fs;
-        timeVec = timeVec(1:length(FP));
-        data.final(n).time = timeVec(:);
     end
+    timeVec = [1:L]/Fs;
+    data.final(n).time = timeVec';
 end
