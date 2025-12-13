@@ -56,6 +56,6 @@ for n = 1:nAcq
         L = length(data.acq(n).time{x}); 
         timeVec = [1:length(1:dsRate:L)]/Fs;
         timeVec = timeVec(1:length(FP));
-        data.final(n).time{x} = timeVec(:);
+        data.final(n).time = timeVec(:);
     end
 end

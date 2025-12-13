@@ -27,6 +27,7 @@ function [beh] = alignBehTStoPhotoTS(data, statetrans)
 
 StateTransTS=table2array(statetrans(:,1));
 
+%% Hit
 GoTS=StateTransTS((statetrans.Id=='Hit')); 
 FirstFrameB4EvntIdx7 = []; c=1;
 FramesTS = data.acq.time{1};
@@ -42,6 +43,7 @@ end
 TS = FirstFrameB4EvntIdx7(:);
 beh.hits = TS;
 
+%% Miss
 GoTS=StateTransTS((statetrans.Id=='Miss')); 
 FirstFrameB4EvntIdx7 = []; c=1;
 FramesTS = data.acq.time{1};
@@ -57,7 +59,21 @@ end
 TS = FirstFrameB4EvntIdx7(:);
 beh.miss = TS;
 
-GoTS=StateTransTS((statetrans.Id=='LickCenter')); 
+%% Lick Center
+
+% identify LickCenter / tone that immediately precedes each Hit
+hitRows = find(statetrans.Id == 'Hit'); % row numbers of Hits
+lickRows = nan(numel(hitRows),1);       % store preceding LickCenter (NaN if none)
+for k = 1:numel(hitRows)
+    r = hitRows(k);
+    if r > 1
+        idx = find(statetrans.Id(1:r-1) == 'LickCenter', 1, 'last');
+        if ~isempty(idx)
+            lickRows(k) = idx;
+        end
+    end
+end
+GoTS=StateTransTS(lickRows); % only select time stamps for LickCenter that precedes a Hit
 FirstFrameB4EvntIdx7 = []; c=1;
 FramesTS = data.acq.time{1};
 for i=1:length(GoTS)
@@ -72,6 +88,7 @@ end
 TS = FirstFrameB4EvntIdx7(:);
 beh.lickCenter = TS;
 
+%% LickRight
 GoTS=StateTransTS((statetrans.Id=='LickRight')); 
 FirstFrameB4EvntIdx7 = []; c=1;
 FramesTS = data.acq.time{1};
@@ -87,6 +104,7 @@ end
 TS = FirstFrameB4EvntIdx7(:);
 beh.lickRight = TS;
 
+%% Timeout
 GoTS=StateTransTS((statetrans.Id=='Timeout')); 
 FirstFrameB4EvntIdx7 = []; c=1;
 FramesTS = data.acq.time{1};
@@ -102,6 +120,7 @@ end
 TS = FirstFrameB4EvntIdx7(:);
 beh.error = TS;
 
+%% IncorrectAction
 GoTS=StateTransTS((statetrans.Id=='IncorrectAction')); 
 FirstFrameB4EvntIdx7 = []; c=1;
 FramesTS = data.acq.time{1};

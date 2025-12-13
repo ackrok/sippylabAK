@@ -1,13 +1,16 @@
-addpathSippyAK
+% addpathSippyAK
+addpathSippyAK_local
 
-selectDir = uigetdir(); % pop-up window to select file directory
-cd(selectDir); % open file directors
+% selectDir = uigetdir('Select Directory with Photometry files'); % pop-up window to select file directory
+[~,filePath] = uigetfile('Photometry*.csv','Select the PHOTOMETRY file','MultiSelect','off');
+cd(filePath);  % open file directory
 
 %%
-mouse = inputdlg('Enter Mouse ID', 'Input', 1, {'JT0XX'});
-date = inputdlg('Enter Recording Date', 'Input', 1, {'YYMMDD'});
+mouse = inputdlg(sprintf('Enter Mouse ID: %s',filePath), 'Input', 1, {'JT0XX'});
+date = inputdlg(sprintf('Enter Recording DATE: %s',filePath), 'Input', 1, {'YYMMDD'});
 dayName = sprintf('%s-%s',mouse{1},date{1});
 
+tic
 FramesFile=dir('Frames*.csv'); 
 Frames=table2array(GetBonsai_PhotometryFrames(FramesFile.name));
 
@@ -21,6 +24,7 @@ filename = 'StateTransitions.csv';
 behaviorFile = extractLickData(filename, 1); % for non-habituation data
 beh = extract2AFCdataFun(behaviorFile, dayName, 1);
 beh.LR_R = beh.LR_R(:); beh.pokeRate = beh.pokeRate(:); beh.rewLatency = beh.rewLatency(:); % make column vectors
+toc
 
 %% R0 red R1 green
 ledState = 4; % which LED state we are drawing from, ledState 4 is 565nm
@@ -30,7 +34,7 @@ signalRaw_grn = PhotometryTable(PhotometryTable(:,3)==ledState,[2,5]);
 
 %% create data structure
 data = struct;
-data.ID = dayName;
+data.ID = dayName; data.mouse = mouse{1}; data.date = date{1};
 data.acq.FPnames = {'5-HT','rDA'};
 data.acq.nFPchan = 2;
 cutLength = floor(size(signalRaw_grn,1)/300)*300;
@@ -56,7 +60,7 @@ data.gen.params = params;
 data.beh.bonsai = beh;
 
 [data] = processFP_NPM(data,params);
-[dFF] = baselineFP_SM(data.acq.FP{1}, data.gen.acqFs, params);
+% [dFF] = baselineFP_SM(data.acq.FP{1}, data.gen.acqFs, params);
 
 %% align time stamps for behavioral events (hits) to photometry time stamps
 % 
@@ -68,53 +72,26 @@ beh = alignBehTStoPhotoTS(data, statetrans);
 beh.bonsai = data.beh.bonsai;
 data.beh = beh; 
 
+%% SAVE
+save(fullfile(filePath,sprintf('%s-%s_data.mat',data.mouse,data.date)),'data');
+%filePathCohort = 'R:\sippylab\Data\Jaden Tauber\cohort1_5HTDA_ketamine';
+%save(fullfile(filePathCohort,sprintf('%s-%s_data.mat',data.mouse,data.date)),'data');
+%fprintf('SAVED data.mat for: %s-%s \n',data.mouse,data.date);
+
 %% PLOT RW FP
-fig = figure; hold on
-for x = 1:2
-    subplot(1,2,x);
-    plot(data.acq.time{x}, data.acq.FP{x});
-    xlabel('Time'); ylabel('raw signal'); 
-    title(data.acq.FPnames{x});
-end 
+% fig = figure; hold on
+% for x = 1:2
+%     subplot(1,2,x);
+%     plot(data.acq.time{x}, data.acq.FP{x});
+%     xlabel('Time'); ylabel('raw signal'); 
+%     title(data.acq.FPnames{x});
+% end 
 
 %% processed FP 
-fig = figure; hold on
-for x = 1:2
-    subplot(1,2,x);
-    plot(data.final.time{x}, data.final.FP{x});
-    xlabel('Time (s)'); ylabel('FP (dF/F)'); 
-    title(data.final.FPnames{x});
-end 
-
-%% ALIGN SIGNAL TO HITS
-winSta = [-2 2]; winBase = [-2 1.5];
-
-fig = figure;
-for a = 1:length(data.final.FP) % photometry signal to analyze
-
-    hits = data.beh.Hits;
-    poke = data.beh.Hits - data.beh.rewLatency;
-    time = data.final.time{a};
-    hitsSamp = []; hitsSampErr = []; pokeSamp = []; pokeSampErr = [];
-    for x = 1:length(hits)
-        [c, index] = min(abs(time - hits(x)));
-        hitsSamp(x) = index; % index along time, FP signal vectors closest to hit time
-        hitsSampErr(x) = c; % error, aka difference between time in signal and hit time
-        [c, index] = min(abs(time - poke(x)));
-        pokeSamp(x) = index; pokeSampErr(x) = c; % closest to poke time
-    end
-    [staHits, staTime] = getSTA(data.final.FP{a}, data.final.time{a}(hitsSamp), data.gen.Fs, winSta);
-    [staPoke, ~] = getSTA(data.final.FP{a}, data.final.time{a}(pokeSamp), data.gen.Fs, winSta);
-    
-    % baseline adjust STA
-    staHitsAdj = staHits - nanmean(staHits(find(staTime == winBase(1)):find(staTime == winBase(2)),:),1);
-    staPokeAdj = staPoke - nanmean(staPoke(find(staTime == winBase(1)):find(staTime == winBase(2)),:),1);
-
-    % and PLOT
-    subplot(1,2,a); hold on
-    shadederrbar(staTime, nanmean(staHitsAdj,2), SEM(staHitsAdj,2),'b');
-    shadederrbar(staTime, nanmean(staPokeAdj,2), SEM(staPokeAdj,2),'k');
-    xline(0)
-    legend({'Hits','Pokes'})
-    xlabel('Time to Hit (s)'); ylabel('FP (dF/F)'); title(data.final.FPnames{a});
-end
+% fig = figure; hold on
+% for x = 1:2
+%     subplot(1,2,x);
+%     plot(data.final.time{x}, data.final.FP{x});
+%     xlabel('Time (s)'); ylabel('FP (dF/F)'); 
+%     title(data.final.FPnames{x});
+% end 
