@@ -1,5 +1,3 @@
-% addpathSippyAK
-addpathSippyAK_local
 
 % selectDir = uigetdir('Select Directory with Photometry files'); % pop-up window to select file directory
 [~,filePath] = uigetfile('Photometry*.csv','Select the PHOTOMETRY file','MultiSelect','off');
