@@ -64,17 +64,16 @@ data.beh.bonsai = beh;
 % 
 filename=dir('*StateTransitions.csv');
 statetrans=GetBonsai_Pho_StateTransitions_Celeste(filename.name);
-beh = alignBehTStoPhotoTS(data, statetrans); 
-% vectors with index as frame relative to photometry signal
+beh = alignBehTStoPhotoTS(data, statetrans); % frame relative to photometry signal
 
-beh.bonsai = data.beh.bonsai;
+% beh.bonsai = data.beh.bonsai;
 data.beh = beh; 
 
 %% SAVE
 save(fullfile(filePath,sprintf('%s-%s_data.mat',data.mouse,data.date)),'data');
 %filePathCohort = 'R:\sippylab\Data\Jaden Tauber\cohort1_5HTDA_ketamine';
 %save(fullfile(filePathCohort,sprintf('%s-%s_data.mat',data.mouse,data.date)),'data');
-%fprintf('SAVED data.mat for: %s-%s \n',data.mouse,data.date);
+fprintf('SAVED data.mat for: %s-%s \n',data.mouse,data.date);
 
 %% PLOT RW FP
 % fig = figure; hold on

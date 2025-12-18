@@ -55,15 +55,17 @@ beh.lickCenter = TS;
 
 %% LickCenter -- mouse initiates trial
 trials = unique(statetrans.Trial); % Identify row index for first LickCenter for each unique Trial
-rowsLickCenter_trialStart = nan(size(trials));
+rowsLickCenter_trial = nan(size(trials));
 for ii = 1:numel(trials)
     rows = find(statetrans.Trial == trials(ii));
     k = find(statetrans.Id(rows) == "LickCenter", 1, 'first');
     if ~isempty(k)
-        rowsLickCenter_trialStart(ii) = rows(k);
+        rowsLickCenter_trial(ii) = rows(k);
     end
 end
-compTS = statetransTS(rowsLickCenter_trialStart); 
+trialFail = find(isnan(rowsLickCenter_trial)); % identify any trials that were not initiated
+rowsLickCenter_trial(trialFail) = [];
+compTS = statetransTS(rowsLickCenter_trial); 
 TS = firstFrameBeforeEventIndex(compTS, data.acq.time{1});
 beh.lickStartTrial = TS;
 
@@ -93,6 +95,26 @@ beh.error = TS;
 compTS = statetransTS((statetrans.Id=='IncorrectAction')); 
 TS = firstFrameBeforeEventIndex(compTS, data.acq.time{1});
 beh.noHold = TS;
+
+%% Trial end action
+% Group trials and get unique trial ids
+[G, trial] = findgroups(statetrans.Trial);
+
+% For each group, take the last Id (last row within that trial)
+lastAct = splitapply(@(ids) ids(end), statetrans.Id, G);   % categorical array, one per trial
+
+% Take second to last Id (should be LickXXX)
+secondLastAct = splitapply(@(ids) ids(end-1), statetrans.Id, G); % second to last action per trial
+% s = string(secondLastAct); % convert to string vector
+% maskNotLick = ~startsWith(s, "Lick") | isundefined(secondLastAct); % logical to identify which values do not start with Lick
+% idx = find(maskNotLick); % any action non-Lick?
+
+% Return result table
+lastAct = table(trial, lastAct, secondLastAct,...
+    'VariableNames', {'trial','lastAct','lastLick'});
+lastAct(trialFail,:) = []; % remove trials where mouse failed to initiate trial with center poke, as identified above
+
+beh.lastAct = lastAct;
 
 
 % TStype=[ones(1,length(TS))];

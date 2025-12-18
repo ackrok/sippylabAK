@@ -1,6 +1,9 @@
-function beh = extract2AFCdataAK(statetrans)
+function beh = extract2AFCdataAK(varargin)
 % Extract behavioral events from bonsai output table
 % Task: 2AFC
+%
+% beh = extract2AFCdataAK(statetrans)
+% beh = extract2AFCdataAK(filePath, fileNames)
 %
 % INPUT
 % 'statetrans' - table made from StateTransitions.csv using function 
@@ -11,6 +14,15 @@ function beh = extract2AFCdataAK(statetrans)
 %
 % Written by Anya Krok, Dec 2025
 
+switch nargin
+    case 1
+        statetrans = varargin{1}; % assign the input table to statetrans
+    case 2
+        filePath = varargin{1}; % fileNames = varargin{2};
+        cd(filePath)
+        filename=dir('*StateTransitions.csv');
+        statetrans=GetBonsai_Pho_StateTransitions_Celeste(filename.name);
+end
 
 %% time stamps
 compTime = [statetrans.TimeOfDay]./1e3; % computer time
@@ -51,6 +63,8 @@ for i = 1:numel(trials)
         rowsLickCenter_trial(i) = rows(k);
     end
 end
+trialFail = find(isnan(rowsLickCenter_trial)); % identify any trials that were not initiated
+rowsLickCenter_trial(trialFail) = [];
 beh.lickStartTrial = TS0(rowsLickCenter_trial);
 
 %% LICK CENTER -- preceding a hit
@@ -89,6 +103,7 @@ secondLastAct = splitapply(@(ids) ids(end-1), statetrans.Id, G); % second to las
 % Return result table
 lastAct = table(trial, lastAct, secondLastAct,...
     'VariableNames', {'trial','lastAct','lastLick'});
+lastAct(trialFail,:) = []; % remove trials where mouse failed to initiate trial with center poke, as identified above
 
 beh.lastAct = lastAct;
 
