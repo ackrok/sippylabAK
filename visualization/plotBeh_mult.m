@@ -15,43 +15,85 @@ if ~exist('comb')
 end
 
 [uni,~,idxMap] = unique({comb.mouse});
-ii = 1; % ONLY 1ST ANIMAL
-match = find(strcmp({comb.mouse},uni{ii})); % idx in comb structure for this unique mouse ID
-a = 1; % for a = 1:length(match)
+choice = menu('Select mouse to analyze',uni);
+match = find(strcmp({comb.mouse},uni{choice})); % idx in comb structure for this unique mouse ID
 
-figure;
-%% number of rewards
+fig = figure;
+spX = 2; spY = 3;
 
-barY = []; % clear var
+%% (1) outcome by trial
+spNum = 1;
+
+barY = nan(length(match),5); % clear var
+barLbl = {'hit R','hit L','miss','noHold','other'};
 for a = 1:length(match) % iterate over all recordings for this unique mouse ID
-    nHit = length(comb(match(a)).beh.hits); % number of hits
-    nTrial = size(comb(match(a)).beh.lastAct,1); % number of trials
-    barY(a,:) = [nHit, nTrial-nHit];
+    beh = comb(match(a)).beh; 
+    side = [beh.lastAct.lastLick];
+    side = side(beh.lastAct.lastAct == 'Hit');
+    barY(a,1) = length(find(side == "LickRight"));
+    barY(a,2) = length(find(side == "LickLeft"));
+
+    lastAct = [beh.lastAct.lastAct];
+    counts = countcats(lastAct); % count occurence of categorical array elements by category
+    names = categories(lastAct); % returns possible names for categories
+    % barY(a,1) = counts(strcmp(names,'Hit'));
+    barY(a,3) = counts(strcmp(names,'Miss'));
+    barY(a,4) = counts(strcmp(names,'IncorrectAction'));
+    barY(a,5) = sum(counts(~ismember(names, {'Hit','Miss','IncorrectAction'})));
 end
 
-subplot(2,3,1)
-b = bar(1:length(match), barY, 'stacked');
-
-legend({'#hits', '#trials - #hits'})
+sp(spNum) = subplot(spX, spY, spNum);
+bar(1:length(match), barY, 'stacked')
+legend({'#hits R', '#hits L','#miss', '#error', '#other'}, ...
+    'direction','reverse', 'location', 'southwest');
 xlabel('recording date'); xticklabels({comb(match).date});  
-ylabel('# hits'); ylim([0 255]);
-str = sprintf('%s - #hits \n',uni{ii});
+ylabel('# trials'); sp(spNum).YLim = [0 255];
+str = sprintf('%s - total hits (per #trials) \n',uni{choice});
 for a = 1:length(match)
-    str = [str,sprintf(' day %d: (%d/%d).',a,barY(a,1),sum(barY(a,:)))];
+    str = [str,sprintf(' day %d: (%d/%d).', a, sum(barY(a,1:2)), sum(barY(a,:)))];
 end
 title(str);
 
-%% timing of rewards
+%% (2) lick vector to reward
+spNum = 2;
+
+bin = 0.1; % bin width, in seconds
+win = [-1 1]; % window, in seconds
+lickHit = cell(length(match),2); % initialize cell array
+lbl = {'lick right','lick left'}; % labels for plotting
+for a = 1:length(match)
+    beh = comb(match(a)).beh; Fs = comb(a).Fs;
+    pethR = getClusterPETH (beh.lickRight./Fs, beh.hits./Fs, bin, win);
+    pethL = getClusterPETH (beh.lickLeft./Fs,  beh.hits./Fs, bin, win);
+    lickHit{a,1} = pethR.cts{1};
+    lickHit{a,2} = pethL.cts{1};
+end
+pethTime = pethR.time; % extract time vector for plotting
+
+sp(spNum) = subplot(spX, spY, spNum); hold on
+clr = {'b','r'};
+b = 1; % lickRight
+for a = 1:size(lickHit,1)
+    shadederrbar(pethTime, nanmean(lickHit{a,b},2), SEM(lickHit{a,b},2), clr{a});
+end
+xline(0);
+xlabel('time to reward (s)'); ylabel('licks (Hz)');
+title([lbl{b},' - frequency to reward']);
+legend({comb(match).date},'Location','northwest');
+
+%% (3) timing of rewards
+spNum = 3;
+
 barY = nan(length(match),2); % preallocate matrix
 for a = 1:length(match)
-    barY(a,1) = comb(match(a)).beh.hits(1); % time to 1st reward in samples
-    barY(a,2) = comb(match(a)).beh.hits(end); % time to last reward
+    beh = comb(match(a)).beh; 
+    barY(a,1) = beh.hits(1); % time to 1st reward in samples
+    barY(a,2) = beh.hits(end); % time to last reward
 end
 barY = barY./comb(match(1)).Fs; % convert to seconds
 
-subplot(2,3,2);
+sp(spNum) = subplot(spX, spY, spNum);
 b = bar(barY); % plot bar graph
-
 for a = 1:length(b)
     b(a).Labels = round(b(a).YData);
 end
@@ -69,68 +111,73 @@ end
 % end
 title(str);
 
-%% inter-reward intervals
+%% (4) inter-reward intervals
+spNum = 4;
+
 % histogram(iri{a},'BinWidth',5); xlabel('interval (s)'); ylabel('freq')
 iri = cell(length(match),1);
 for a = 1:length(match)
-    iri{a} = diff(comb(match(a)).beh.hits./comb(match(a)).Fs); % inter-reward intervals in seconds
+    beh = comb(match(a)).beh; Fs = comb(match(a)).Fs;
+    iri{a} = diff(beh.hits./Fs); % inter-reward intervals in seconds
+    iri{a} = [beh.hits(1)/Fs; iri{a}]; % add 1st reward delay
 end
 % Calculate the mean and minimum inter-reward intervals for plotting
 iriMean = cellfun(@mean, iri);
 iriMin = cellfun(@min, iri); iriMax = cellfun(@max, iri);
 iriSEM = cellfun(@std,iri)./sqrt(cellfun(@length,iri));
 
-subplot(2,3,3); hold on
+sp(spNum) = subplot(spX, spY, spNum); hold on
 errorbar(1:length(match),iriMean,iriSEM,...
     '-o','MarkerSize',10,'MarkerFaceColor','g','Color','g','LineStyle','none');
-plot(1:length(match), iriMin, '*b', 'MarkerSize', 10);
+plot(1:length(match), iriMin, '*c', 'MarkerSize', 10);
 % plot(1:length(match), iriMax, '*b', 'MarkerSize', 10);
-legend({'mean','min','max'});
+legend({'mean','min'},'location','northwest');
 xlim([0.5 0.5+length(match)]); xticks(1:length(match));
 xlabel('recording date'); xticklabels({comb(match).date});  
-ylabel('inter-reward interval (s)'); ylim([0 50+round(max(iriMean),-1)]);
+ylabel('inter-reward interval (s)'); 
+ylim(1) = 0; % y-axis to start at 0 seconds
 str = 'mean IRI:';
 for a = 1:length(match)
     str = [str,sprintf(' day %d (%.1f sec).', a, iriMean(a))];
 end
 title(str);
 
-%% lick vector to reward
-% STOPPED HERE
-bin = 0.1; % bin width, in seconds
-win = [-1 1]; % window, in seconds
+%% (5) inter-reward intervals plotted OVER TIME
+spNum = 5;
 
-pethR = getClusterPETH (beh.lickRight, beh.hits, bin, win);
-pethL = getClusterPETH (beh.lickLeft, beh.hits, bin, win);
+iri = cell(length(match),1);
+for a = 1:length(match)
+    beh = comb(match(a)).beh; 
+    Fs = comb(match(a)).Fs; % sampling frequency
+    iri{a} = diff(beh.hits./Fs); % inter-reward intervals in seconds
+    iri{a} = [beh.hits(1)/Fs; iri{a}]; % add 1st reward delay
+end
+m = max(cellfun(@max, {comb(match).time})); % recording duration for longest recording
 
-subplot(2,3,4); hold on
-shadederrbar(pethR.time, nanmean(pethR.cts{1},2), SEM(pethR.cts{1},2), 'b');
-shadederrbar(pethL.time, nanmean(pethL.cts{1},2), SEM(pethL.cts{1},2), 'k');
-xline(0);
-xlabel('time to reward (s)'); ylabel('licks (Hz)');
-title('lick frequency to reward');
-legend({'Right','Left'},'Location','northwest');
+sp(spNum) = subplot(spX, spY, spNum); hold on
+a = 1; scatter(1:length(iri{a}), iri{a}, 'b', 'filled');
+a = 2; scatter(1:length(iri{a}), iri{a}, 'r', 'filled');
+legend({comb(match).date})
+xlabel('trial #'); ylabel('inter-reward interval (s)');
 
-%% proportion of trials with each action
 
-lastAct = [beh.lastAct.lastAct];
-counts = countcats(lastAct); % count occurence of categorical array elements by category
-names = categories(lastAct); % returns possible names for categories
-mask = counts > 0; % limit to only non-zero categories
+%% number of rewards
 
-subplot(2,3,5);
-p = piechart(counts(mask),names(mask)); p.StartAngle = 60;
-title('Proportion of Trials ending with:')
-
-%% side bias -- proportion of HITS that are LEFT vs RIGHT
-
-sideBias = [beh.lastAct.lastLick];
-sideBias = sideBias(beh.lastAct.lastAct == 'Hit');
-counts = countcats(sideBias);
-names = categories(sideBias);
-mask = counts > 0;
-
-subplot(2,3,6); 
-p = piechart(counts(mask),names(mask)); p.StartAngle = 60;
-title('Side Bias for Hits')
-
+% barY = []; % clear var
+% for a = 1:length(match) % iterate over all recordings for this unique mouse ID
+%     nHit = length(comb(match(a)).beh.hits); % number of hits
+%     nTrial = size(comb(match(a)).beh.lastAct,1); % number of trials
+%     barY(a,:) = [nHit, nTrial-nHit];
+% end
+% 
+% sp(1) = subplot(spX, spY, 1);
+% b = bar(1:length(match), barY, 'stacked');
+% 
+% legend({'#hits', '#trials - #hits'})
+% xlabel('recording date'); xticklabels({comb(match).date});  
+% ylabel('# hits'); ylim([0 255]);
+% str = sprintf('%s - #hits \n',uni{ii});
+% for a = 1:length(match)
+%     str = [str,sprintf(' day %d: (%d/%d).',a,barY(a,1),sum(barY(a,:)))];
+% end
+% title(str);
