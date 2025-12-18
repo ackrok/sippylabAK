@@ -17,64 +17,61 @@ compTime = [statetrans.TimeOfDay]./1e3; % computer time
 compTime_0 = compTime - compTime(1);
 elapTime = [statetrans.ElapsedTime]; % elapsed time on bonsai
 elapTime_0 = elapTime - elapTime(1);
-
 TS0 = elapTime_0(:); % use elapsed time **CAN CHANGE**
 
 %% 
-uni = unique(statetrans.Id); % identify unique behavioral event names
-nTrial = max(statetrans.Trial)+1; % total number of trials
+% uni = unique(statetrans.Id); % identify unique behavioral event names
+% nTrial = max(statetrans.Trial)+1; % total number of trials
 
-%% center port light on -- trial starts
+%% HIT
+rowsHit = find(statetrans.Id == 'Hit'); % row index for a Hit
+% hitTrial = statetrans.Trial(rowsHit)+1; % find the Trial # for Hits
+% hitError = find(diff(sort(hitTrial)) == 0); % ensure that no overlappying Hits on the same trial
+beh.hits = TS0(rowsHit);
 
+%% MISS
+beh.miss = TS0(statetrans.Id == 'Miss');
 
-%% center port lick -- mouse initiates trial
+%% LIGHT ON -- trial starts
+% ADD LATER
+
+%% LICK: all lick left and all lick rights
+beh.lickLeft = TS0(statetrans.Id == 'LickLeft');
+beh.lickRight = TS0(statetrans.Id == 'LickRight');
+beh.lickCenter = TS0(statetrans.Id == 'LickCenter');
+
+%% LICK CENTER -- mouse initiates trial
 % Identify row index for first LickCenter for each unique Trial
 trials = unique(statetrans.Trial);
-lickCenterRows = nan(size(trials));
+rowsLickCenter_trial = nan(size(trials));
 for i = 1:numel(trials)
     rows = find(statetrans.Trial == trials(i));
     k = find(statetrans.Id(rows) == "LickCenter", 1, 'first');
     if ~isempty(k)
-        lickCenterRows(i) = rows(k);
+        rowsLickCenter_trial(i) = rows(k);
     end
 end
-beh.lickStartTrial = TS0(lickCenterRows);
+beh.lickStartTrial = TS0(rowsLickCenter_trial);
 
-%% LICKS: all lick left and all lick rights
-% Identify row indices for left and right licks
-leftLickRows = statetrans.Id == 'LickLeft';
-rightLickRows = statetrans.Id == 'LickRight';
-centerLickRows = statetrans.Id == 'LickCenter';
+%% LICK CENTER -- preceding a hit
+rowsLickCenter_preHit = nan(numel(rowsHit),1); % store preceding LickCenter (NaN if none)
+for k = 1:numel(rowsHit)
+    r = rowsHit(k);
+    if r > 1
+        idx = find(statetrans.Id(1:r-1) == 'LickCenter', 1, 'last');
+        if ~isempty(idx)
+            rowsLickCenter_preHit(k) = idx;
+        end
+    end
+end
+beh.lickStartHitTrial = TS0(rowsLickCenter_preHit);
+beh.rewLatency = beh.hits - beh.lickStartHitTrial;
 
-beh.lickLeft = TS0(leftLickRows);
-beh.lickRight = TS0(rightLickRows);
-beh.lickCenter = TS0(centerLickRows);
+%% INCORRECT ACTION aka NO HOLD
+beh.noHold = TS0(statetrans.Id == 'IncorrectAction');
 
-%% HIT
-hitRows = statetrans.Id == 'Hit'; % row numbers of Hits
-% hitTrial = statetrans.Trial(hitRows)+1; % find the Trial # for Hits
-% hitError = find(diff(sort(hitTrial)) == 0); % ensure that no overlappying Hits on the same trial
-
-beh.hits = TS0(hitRows);
-
-%% MISS
-missRows = statetrans.Id == 'Miss'; % row numbers of Misses
-% missTrial = statetrans.Trial(missRows)+1; % same for Misses
-% missError = find(diff(sort(missTrial)) == 0); % ensure that no overlappying Misses on the same trial
-
-beh.miss = TS0(missRows);
-
-%% INCORRECT ACTION
-incRows = statetrans.Id == 'IncorrectAction';
-beh.incorrect = TS0(incRows);
-
-%% ERROR
-errorRows = statetrans.Id == 'Error';
-beh.error = TS0(errorRows);
-
-%% NO HOLD
-noholdRows = statetrans.Id == 'NoHold';
-beh.noHold = TS0(noholdRows);
+%% TIMEOUT aka ERROR
+beh.error = TS0(statetrans.Id == 'Timeout');
 
 %% TRIAL END ACTION
 % Group trials and get unique trial ids

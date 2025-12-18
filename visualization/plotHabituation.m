@@ -1,5 +1,5 @@
-selectDir = uigetdir('Select Directory with Photometry files'); % pop-up window to select file directory
-[~,filePath] = uigetfile('Photometry*.csv','Select the PHOTOMETRY file','MultiSelect','off');
+% selectDir = uigetdir('Select Directory with State Transitions csv'); % pop-up window to select file directory
+[~,filePath] = uigetfile('State*.csv','Select the STATE TRANSITIONS file','MultiSelect','off');
 cd(filePath);  % open file directory
 
 %% extract data from .csv files (bonsai output)
