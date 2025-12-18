@@ -1,0 +1,81 @@
+selectDir = uigetdir('Select Directory with Photometry files'); % pop-up window to select file directory
+[~,filePath] = uigetfile('Photometry*.csv','Select the PHOTOMETRY file','MultiSelect','off');
+cd(filePath);  % open file directory
+
+%% extract data from .csv files (bonsai output)
+tic
+filename=dir('*StateTransitions.csv');
+statetrans=GetBonsai_Pho_StateTransitions_Celeste(filename.name);
+
+beh = extract2AFCdataAK(statetrans);
+toc
+
+%% number of rewards
+
+fig = figure;
+subplot(2,3,1);
+bar(1, [length(beh.hits) size(beh.lastAct,1)-length(beh.hits)], 'stacked');
+legend({'#hits', '#trials - #hits'})
+xticklabels({''}); ylabel('# hits'); ylim([0 275]);
+title(['JT',fliplr(strtok(fliplr(filePath),'JT')),...
+    sprintf('\n hits: (%d / %d)',length(beh.hits),size(beh.lastAct,1))]);
+
+%% timing of rewards
+
+subplot(2,3,2);
+b(2) = bar([beh.hits(1), beh.hits(end)]);
+b(2).Labels = round(b(2).YData); xticklabels({'1st','last'});
+ylabel('time to reward (s)');
+title(sprintf('time to 1st: %d sec (%.1f min) \n time to last: %d sec (%.1f min)',...
+   round(beh.hits(1)), beh.hits(1)/60, round(beh.hits(end)), beh.hits(end)/60));
+
+%% inter-reward intervals
+
+iri = diff(beh.hits); % inter-reward intervals
+
+subplot(2,3,3)
+histogram(iri,'BinWidth',5);
+xlabel('interval (s)'); ylabel('freq')
+
+title(sprintf('inter-reward intervals \n mean = %.1f sec || min = %.1f sec',...
+    mean(iri),min(iri)));
+
+%% lick vector to reward
+
+bin = 0.1; % bin width, in seconds
+win = [-1 1]; % window, in seconds
+
+pethR = getClusterPETH (beh.lickRight, beh.hits, bin, win);
+pethL = getClusterPETH (beh.lickLeft, beh.hits, bin, win);
+
+subplot(2,3,4); hold on
+shadederrbar(pethR.time, nanmean(pethR.cts{1},2), SEM(pethR.cts{1},2), 'b');
+shadederrbar(pethL.time, nanmean(pethL.cts{1},2), SEM(pethL.cts{1},2), 'k');
+xline(0);
+xlabel('time to reward (s)'); ylabel('licks (Hz)');
+title('lick frequency to reward');
+legend({'Right','Left'},'Location','northwest');
+
+%% proportion of trials with each action
+
+lastAct = [beh.lastAct.lastAct];
+counts = countcats(lastAct); % count occurence of categorical array elements by category
+names = categories(lastAct); % returns possible names for categories
+mask = counts > 0; % limit to only non-zero categories
+
+subplot(2,3,5);
+p = piechart(counts(mask),names(mask)); p.StartAngle = 60;
+title('Proportion of Trials ending with:')
+
+%% side bias -- proportion of HITS that are LEFT vs RIGHT
+
+sideBias = [beh.lastAct.lastLick];
+sideBias = sideBias(beh.lastAct.lastAct == 'Hit');
+counts = countcats(sideBias);
+names = categories(sideBias);
+mask = counts > 0;
+
+subplot(2,3,6); 
+p = piechart(counts(mask),names(mask)); p.StartAngle = 60;
+title('Side Bias for Hits')
+
