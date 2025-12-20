@@ -1,11 +1,20 @@
 
 % selectDir = uigetdir('Select Directory with Photometry files'); % pop-up window to select file directory
-[~,filePath] = uigetfile('Photometry*.csv','Select the PHOTOMETRY file','MultiSelect','off');
+[~,filePath] = uigetfile('Photometry*.csv','Select photometry CSV file','MultiSelect','off');
 cd(filePath);  % open file directory
 
 %%
-mouse = inputdlg(sprintf('Enter Mouse ID: %s',filePath), 'Input', 1, {'JT0XX'});
-date = inputdlg(sprintf('Enter Recording DATE: %s',filePath), 'Input', 1, {'YYMMDD'});
+try
+    mouse = regexp(filePath, 'JT0\d{2}', 'match', 'once'); % extract JT followed by 0 and two digits (e.g. JT019)
+    date = regexp(filePath, '\d{6}', 'match', 'once'); % extract any sequence of exactly six digits (e.g. 251215)
+    ans = inputdlg({sprintf('%s \n\n\n Mouse ID:',filePath), 'Recording Date:'},...
+        'Input', [1 40; 1 40], {mouse, date});
+    mouse = ans{1}; date = ans{2};
+catch
+    ans = inputdlg({sprintf('%s \n\n\n Mouse ID:',filePath), 'Recording Date:'},...
+        'Input', [1 40; 1 40], {'JT0XX','YYMMDD'});
+    mouse = ans{1}; date = ans{2};
+end
 dayName = sprintf('%s-%s',mouse{1},date{1});
 
 tic

@@ -18,6 +18,7 @@ end
 choice = menu('Select mouse to analyze',uni);
 match = find(strcmp({comb.mouse},uni{choice})); % idx in comb structure for this unique mouse ID
 
+%%
 fig = figure;
 spX = 2; spY = 3;
 
@@ -71,10 +72,10 @@ end
 pethTime = pethR.time; % extract time vector for plotting
 
 sp(spNum) = subplot(spX, spY, spNum); hold on
-clr = {'b','r'};
+clr = lines(7);
 b = 1; % lickRight
 for a = 1:size(lickHit,1)
-    shadederrbar(pethTime, nanmean(lickHit{a,b},2), SEM(lickHit{a,b},2), clr{a});
+    shadederrbar(pethTime, nanmean(lickHit{a,b},2), SEM(lickHit{a,b},2), clr(a,:));
 end
 xline(0);
 xlabel('time to reward (s)'); ylabel('licks (Hz)');
@@ -99,16 +100,12 @@ for a = 1:length(b)
 end
 xlabel('recording date'); xticklabels({comb(match).date});  
 ylabel('time to reward (s)');
-str = sprintf('time to 1st:',uni{ii});
+legend({'1st reward','last reward'});
+str = sprintf('time to 1st:',uni{choice});
 for a = 1:length(match)
     str = [str,sprintf(' day %d (%d s = %.1f min).',...
         a, round(barY(a,1)), barY(a,1)/60)];
 end
-% str = sprintf('%s \n to last:',str);
-% for a = 1:length(match)
-%     str = [str,sprintf(' day %d (%d s = %.1f min).',...
-%         a, round(barY(a,2)), barY(a,2)/60)];
-% end
 title(str);
 
 %% (4) inter-reward intervals
@@ -155,8 +152,11 @@ end
 m = max(cellfun(@max, {comb(match).time})); % recording duration for longest recording
 
 sp(spNum) = subplot(spX, spY, spNum); hold on
-a = 1; scatter(1:length(iri{a}), iri{a}, 'b', 'filled');
-a = 2; scatter(1:length(iri{a}), iri{a}, 'r', 'filled');
+clr = lines(7);
+for a = 1:length(match)
+    scatter(1:length(iri{a}), iri{a}, 'filled',...
+        'MarkerFaceColor',clr(a,:),'MarkerFaceAlpha',0.5);
+end
 legend({comb(match).date})
 xlabel('trial #'); ylabel('inter-reward interval (s)');
 
@@ -176,7 +176,7 @@ xlabel('trial #'); ylabel('inter-reward interval (s)');
 % legend({'#hits', '#trials - #hits'})
 % xlabel('recording date'); xticklabels({comb(match).date});  
 % ylabel('# hits'); ylim([0 255]);
-% str = sprintf('%s - #hits \n',uni{ii});
+% str = sprintf('%s - #hits \n',uni{choice});
 % for a = 1:length(match)
 %     str = [str,sprintf(' day %d: (%d/%d).',a,barY(a,1),sum(barY(a,:)))];
 % end
