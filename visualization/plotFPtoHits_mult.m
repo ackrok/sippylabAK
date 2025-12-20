@@ -14,14 +14,15 @@
 % 
 % Anya Krok, Dec 2025
 
+%% 
+winSta = [-1 2]; % STA window, in seconds
+winBase = [-2 -1]; % baseline window, in seconds
+
+%% Analyze data
 if ~exist('comb')
     error('ERROR: comb structure does not exist in workspace.');
 end
 
-winSta = [-2 2]; % STA window, in seconds
-winBase = [-4 -2]; % baseline window, in seconds
-
-%% Analyze data
 opts = fieldnames(comb(1).beh); % options are all behavioral events names
 choice = menu('Select analysis',opts);
 lbl = opts{choice}; % name of behavioral event to use for labeling
@@ -46,22 +47,51 @@ fprintf('STA analysis done.\n')
 
 %% Plot STA, comparing across recordings per animal
 [uni,~,idxMap] = unique({comb.mouse});
-for b = 1:nFP
-    figure;
-    spX = floor(sqrt(length(uni))); spY = ceil(length(uni)/spX);
-    for ii = 1:length(uni)
-        match = find(strcmp({comb.mouse}, uni{ii})); % idx of recordings with same unique mouse ID
-        pullUni = alignAll(match, b); % build cell array of only recordings from this mouse
-   
-        subplot(spX,spY,ii); hold on
-        clr = {'b','r'};
-        for a = 1:length(match)
-            shadederrbar(staTime, nanmean(pullUni{a},2), SEM(pullUni{a},2), clr{a});
-        end
-        xline(0);
-        title(sprintf('%s - %s to %s',uni{ii}, FPnames{b}, lbl));
-        xlabel(sprintf('time to %s (s)',lbl)); 
-        ylabel(sprintf('%s (dF/F)',FPnames{b}));
-        legend({comb(match).date}); 
+
+FPnames = comb(1).FPnames;
+opts2 = cell(nFP,1);
+for b = 1:nFP; opts2{b} = [FPnames{b},' to ',lbl,', by mouse']; end
+choice2 = listdlg('ListString',opts2);
+
+for c = 1:length(choice2)
+    switch choice2(c)
+        case 1
+            b = choice2(c);
+            figure;
+            spX = floor(sqrt(length(uni))); spY = ceil(length(uni)/spX);
+            for ii = 1:length(uni)
+                match = find(strcmp({comb.mouse}, uni{ii})); % idx of recordings with same unique mouse ID
+                pullUni = alignAll(match, b); % build cell array of only recordings from this mouse
+           
+                subplot(spX,spY,ii); hold on
+                clr = lines(7);
+                for a = 1:length(match)
+                    shadederrbar(staTime, nanmean(pullUni{a},2), SEM(pullUni{a},2), clr(a,:));
+                end
+                xline(0);
+                title(sprintf('%s - %s to %s',uni{ii}, FPnames{b}, lbl));
+                xlabel(sprintf('time to %s (s)',lbl)); 
+                ylabel(sprintf('%s (dF/F)',FPnames{b}));
+                legend({comb(match).date}); 
+            end
+        case 2
+            b = choice2(c);
+            figure;
+            spX = floor(sqrt(length(uni))); spY = ceil(length(uni)/spX);
+            for ii = 1:length(uni)
+                match = find(strcmp({comb.mouse}, uni{ii})); % idx of recordings with same unique mouse ID
+                pullUni = alignAll(match, b); % build cell array of only recordings from this mouse
+           
+                subplot(spX,spY,ii); hold on
+                clr = lines(7);
+                for a = 1:length(match)
+                    shadederrbar(staTime, nanmean(pullUni{a},2), SEM(pullUni{a},2), clr(a,:));
+                end
+                xline(0);
+                title(sprintf('%s - %s to %s',uni{ii}, FPnames{b}, lbl));
+                xlabel(sprintf('time to %s (s)',lbl)); 
+                ylabel(sprintf('%s (dF/F)',FPnames{b}));
+                legend({comb(match).date}); 
+            end
     end
 end

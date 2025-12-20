@@ -35,12 +35,9 @@ for a = 1:length(match) % iterate over all recordings for this unique mouse ID
     barY(a,2) = length(find(side == "LickLeft"));
 
     lastAct = [beh.lastAct.lastAct];
-    counts = countcats(lastAct); % count occurence of categorical array elements by category
-    names = categories(lastAct); % returns possible names for categories
-    % barY(a,1) = counts(strcmp(names,'Hit'));
-    barY(a,3) = counts(strcmp(names,'Miss'));
-    barY(a,4) = counts(strcmp(names,'IncorrectAction'));
-    barY(a,5) = sum(counts(~ismember(names, {'Hit','Miss','IncorrectAction'})));
+    barY(a,3) = numel(find(strcmp(lastAct, 'Miss')));
+    barY(a,4) = numel(find(strcmp(lastAct, 'IncorrectAction')));
+    barY(a,5) = length(lastAct) - sum(barY(a,1:4));
 end
 
 sp(spNum) = subplot(spX, spY, spNum);
@@ -103,7 +100,7 @@ ylabel('time to reward (s)');
 legend({'1st reward','last reward'});
 str = sprintf('time to 1st:',uni{choice});
 for a = 1:length(match)
-    str = [str,sprintf(' day %d (%d s = %.1f min).',...
+    str = [str,sprintf(' (%d) %d s = %.1f min.',...
         a, round(barY(a,1)), barY(a,1)/60)];
 end
 title(str);
@@ -149,7 +146,6 @@ for a = 1:length(match)
     iri{a} = diff(beh.hits./Fs); % inter-reward intervals in seconds
     iri{a} = [beh.hits(1)/Fs; iri{a}]; % add 1st reward delay
 end
-m = max(cellfun(@max, {comb(match).time})); % recording duration for longest recording
 
 sp(spNum) = subplot(spX, spY, spNum); hold on
 clr = lines(7);
