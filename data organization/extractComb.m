@@ -1,15 +1,37 @@
-%% extractComb
-% Initialize a structure to store recordings for single cohort of
-% animals across multiple recording days
-% Experiments: photometry, behavior
+function comb = extractComb(varargin)
+%%Extract processed photometry data from multiple recordings into a single
+%%structure for further analysis
 %
-% Anya Krok, Dec 2025
+% [comb] = extractComb()
+% [comb] = extractComb(fName,fPath)
+%
+% Description: Extract processed data from multiple recording 
+% files into a larger structure to be used for further analysis
+%
+% INPUTS
+%   'fPath' - Character array containing folder path where data files are
+%       example: 'R:\tritsn01labspace\Anya\FiberPhotometry\AK201-206\220105'
+%   'fName' - Cell array, with each cell containing file names for each
+%   recording to be added to structure
+%
+% OUPUTS
+%   'comb' - Structure with data from multiple recordings
+%
+% Updated by Anya Krok, December 2025
 
-[fileName,filePath] = uigetfile('*.mat','Select the DATA files','MultiSelect','on');
-cd(filePath);  % open file directory
+%% INPUTS
+switch nargin
+    case 0
+        [fName,fPath] = uigetfile('*.mat','Select the DATA files','MultiSelect','on');
+    case 2
+        fName = varargin{1}; 
+        filePath = varargin{2};
+        if ~iscell(fName); fName = {fName}; end
+end
+    
+%% Extract data
+comb = struct; % Initialize
 
-%%
-comb = struct; % create empty structure
 for a = 1:length(fileName)
     tic
     load(fullfile(filePath, fileName{a})); % load each .mat file
@@ -24,6 +46,5 @@ for a = 1:length(fileName)
     toc
 end
 
-%% 
 save(fullfile(filePath,['combinedData_',char(datetime("today")),'.mat']),'comb');
 fprintf('SAVED comb.mat in filePath \n');
