@@ -1,13 +1,37 @@
-%% Compare behavioral data across multiple recordings
-% 
-% 
-
-[filePath] = uigetdir2; % Essentially multiselect directories, returns filePath in cell array
+function comb = extractComb_beh(varargin)
+%%Extract behavioral data from multiple recordings into a single
+%%structure for further analysis
+%
+% [comb] = extractComb_beh()
+% [comb] = extractComb_beh(comb)
+%
+% Description: Extract behavioral data from multiple recording files into 
+% a larger structure to be used for further analysis. Only extracts
+% behavioral data
+%
+% INPUTS
+%   'fPath' - Select folder with behavioral data in popup window.
+%       for a single mouse, navigate to Behavior folder
+%       select multiple folders that contain Bonsai behavioral data
+%       eg '251205 - Task1', '251208 - Task2', '231210 - Task3'
+%   IMPORTANT -- sub-folder within these folder must contain
+%       StateTransitions.csv to work properly
+%
+% OUPUTS
+%   'comb' - Structure with data from multiple recordings
+%
+% Updated by Anya Krok, December 2025
 
 %%
-if ~exist('combBeh','var')
-    combBeh = struct; % Initiate structure to store data such that works with other plotting scripts
+switch nargin
+    case 1
+        combBeh = varargin{1}; % If comb is provided, use it to store data
+    case 0
+        combBeh = struct; % Initiate structure to store data such that works with other plotting scripts
 end
+
+%%
+[filePath] = uigetdir2; % Essentially multiselect directories, returns filePath in cell array
 
 %%
 for a = 1:length(filePath)
@@ -43,5 +67,3 @@ for a = 1:length(filePath)
     toc
     fprintf('Extracted behavioral data for: %s-%s \n',mouse,date);
 end
-
-%% 
