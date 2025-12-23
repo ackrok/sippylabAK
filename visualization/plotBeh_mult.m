@@ -14,170 +14,111 @@ if ~exist('comb')
     error('ERROR: comb structure does not exist in workspace.');
 end
 
-[uni,~,idxMap] = unique({comb.mouse});
-choice = menu('Select mouse to analyze',uni);
-match = find(strcmp({comb.mouse},uni{choice})); % idx in comb structure for this unique mouse ID
+out       = analyzeBeh_2AFC(comb);
+choice    = menu('Select mouse to analyze',{out.mouse});
+thisMouse = out(choice).mouse;
+recs      = out(choice).date;
 
 fig = figure;
 spX = 2; spY = 3;
+clearvars sp
+clr = lines(7); % RGB colors for MATLAB default (parula), for plotting
 
 %% (1) outcome by trial
 spNum = 1;
 
-barY = nan(length(match),5); % clear var
-barLbl = {'hit R','hit L','miss','noHold','other'};
-for a = 1:length(match) % iterate over all recordings for this unique mouse ID
-    beh = comb(match(a)).beh; 
-    side = [beh.lastAct.lastLick];
-    side = side(beh.lastAct.lastAct == 'Hit');
-    barY(a,1) = length(find(side == "LickRight"));
-    barY(a,2) = length(find(side == "LickLeft"));
-
-    lastAct = [beh.lastAct.lastAct];
-    counts = countcats(lastAct); % count occurence of categorical array elements by category
-    names = categories(lastAct); % returns possible names for categories
-    % barY(a,1) = counts(strcmp(names,'Hit'));
-    barY(a,3) = counts(strcmp(names,'Miss'));
-    barY(a,4) = counts(strcmp(names,'IncorrectAction'));
-    barY(a,5) = sum(counts(~ismember(names, {'Hit','Miss','IncorrectAction'})));
-end
+T = out(choice).lastAct; % extract table
+barY = table2array(T); % extract matrix with outcomes by trial
+lbl  = T.Properties.VariableNames; % extract headers
 
 sp(spNum) = subplot(spX, spY, spNum);
-bar(1:length(match), barY, 'stacked')
+bar(1:length(recs), barY, 'stacked')
 legend({'#hits R', '#hits L','#miss', '#error', '#other'}, ...
     'direction','reverse', 'location', 'southwest');
-xlabel('recording date'); xticklabels({comb(match).date});  
+xlabel('recording date'); xticklabels(recs);  
 ylabel('# trials'); sp(spNum).YLim = [0 255];
-str = sprintf('%s - total hits (per #trials) \n',uni{choice});
-for a = 1:length(match)
-    str = [str,sprintf(' day %d: (%d/%d).', a, sum(barY(a,1:2)), sum(barY(a,:)))];
+str = sprintf('%s - total hits (per #trials) \n',thisMouse);
+for a = 1:size(barY,1)
+    str = [str,sprintf(' (%d): %d/%d.', a, sum(barY(a,1:2)), sum(barY(a,:)))];
 end
 title(str);
 
 %% (2) lick vector to reward
 spNum = 2;
 
-bin = 0.1; % bin width, in seconds
-win = [-1 1]; % window, in seconds
-lickHit = cell(length(match),2); % initialize cell array
-lbl = {'lick right','lick left'}; % labels for plotting
-for a = 1:length(match)
-    beh = comb(match(a)).beh; Fs = comb(a).Fs;
-    pethR = getClusterPETH (beh.lickRight./Fs, beh.hits./Fs, bin, win);
-    pethL = getClusterPETH (beh.lickLeft./Fs,  beh.hits./Fs, bin, win);
-    lickHit{a,1} = pethR.cts{1};
-    lickHit{a,2} = pethL.cts{1};
-end
-pethTime = pethR.time; % extract time vector for plotting
+T = out(choice).lickHit; % extract table
+time = out(choice).lickHit_time; % time vector
+lickHit = table2array(T); 
+lbl  = T.Properties.VariableNames; % extract headers
 
 sp(spNum) = subplot(spX, spY, spNum); hold on
-clr = {'b','r'};
 b = 1; % lickRight
 for a = 1:size(lickHit,1)
-    shadederrbar(pethTime, nanmean(lickHit{a,b},2), SEM(lickHit{a,b},2), clr{a});
+    shadederrbar(time, nanmean(lickHit{a,b},2), SEM(lickHit{a,b},2), clr(a,:));
 end
 xline(0);
 xlabel('time to reward (s)'); ylabel('licks (Hz)');
 title([lbl{b},' - frequency to reward']);
-legend({comb(match).date},'Location','northwest');
+legend(recs,'Location','northwest');
 
 %% (3) timing of rewards
 spNum = 3;
 
-barY = nan(length(match),2); % preallocate matrix
-for a = 1:length(match)
-    beh = comb(match(a)).beh; 
-    barY(a,1) = beh.hits(1); % time to 1st reward in samples
-    barY(a,2) = beh.hits(end); % time to last reward
-end
-barY = barY./comb(match(1)).Fs; % convert to seconds
+T = out(choice).hitTime; % extract table
+barY = table2array(T); % extract matrix with outcomes by trial
+lbl  = T.Properties.VariableNames; % extract headers
+lbl  = cellfun(@(s) strtok(strtrim(s)), lbl, 'UniformOutput', false); % remove second word
 
 sp(spNum) = subplot(spX, spY, spNum);
 b = bar(barY); % plot bar graph
 for a = 1:length(b)
     b(a).Labels = round(b(a).YData);
 end
-xlabel('recording date'); xticklabels({comb(match).date});  
+xlabel('recording date'); xticklabels(recs);  
 ylabel('time to reward (s)');
-str = sprintf('time to 1st:',uni{ii});
-for a = 1:length(match)
-    str = [str,sprintf(' day %d (%d s = %.1f min).',...
-        a, round(barY(a,1)), barY(a,1)/60)];
+legend(lbl);
+str = 'time to 1st:';
+for a = 1:size(barY,1)
+    str = [str,sprintf(' (%d) %d s = %.1f min.', a, round(barY(a,1)), barY(a,1)/60)];
 end
-% str = sprintf('%s \n to last:',str);
-% for a = 1:length(match)
-%     str = [str,sprintf(' day %d (%d s = %.1f min).',...
-%         a, round(barY(a,2)), barY(a,2)/60)];
-% end
 title(str);
 
 %% (4) inter-reward intervals
 spNum = 4;
 
-% histogram(iri{a},'BinWidth',5); xlabel('interval (s)'); ylabel('freq')
-iri = cell(length(match),1);
-for a = 1:length(match)
-    beh = comb(match(a)).beh; Fs = comb(match(a)).Fs;
-    iri{a} = diff(beh.hits./Fs); % inter-reward intervals in seconds
-    iri{a} = [beh.hits(1)/Fs; iri{a}]; % add 1st reward delay
-end
+iri = out(choice).iri;
 % Calculate the mean and minimum inter-reward intervals for plotting
 iriMean = cellfun(@mean, iri);
 iriMin = cellfun(@min, iri); iriMax = cellfun(@max, iri);
 iriSEM = cellfun(@std,iri)./sqrt(cellfun(@length,iri));
 
 sp(spNum) = subplot(spX, spY, spNum); hold on
-errorbar(1:length(match),iriMean,iriSEM,...
-    '-o','MarkerSize',10,'MarkerFaceColor','g','Color','g','LineStyle','none');
-plot(1:length(match), iriMin, '*c', 'MarkerSize', 10);
-% plot(1:length(match), iriMax, '*b', 'MarkerSize', 10);
+errorbar(1:length(recs),iriMean,iriSEM,'-k','LineStyle','none'); % error bar
+scatter(1:length(recs), iriMean, 50, lines(length(recs)), 'filled'); % mean of IRIs
+plot(1:length(recs), iriMin, '*k', 'MarkerSize', 10); % min of IRIs
+% plot(1:length(recs), iriMax, '*k', 'MarkerSize', 10); % max of IRIs
 legend({'mean','min'},'location','northwest');
-xlim([0.5 0.5+length(match)]); xticks(1:length(match));
-xlabel('recording date'); xticklabels({comb(match).date});  
+xlim([0.5 0.5+length(recs)]); xticks(1:length(recs));
+xlabel('recording date'); xticklabels(recs);  
 ylabel('inter-reward interval (s)'); 
 ylim(1) = 0; % y-axis to start at 0 seconds
 str = 'mean IRI:';
-for a = 1:length(match)
-    str = [str,sprintf(' day %d (%.1f sec).', a, iriMean(a))];
+for a = 1:length(recs)
+    str = [str,sprintf(' (%d) %.1f sec.', a, iriMean(a))];
 end
 title(str);
 
 %% (5) inter-reward intervals plotted OVER TIME
 spNum = 5;
 
-iri = cell(length(match),1);
-for a = 1:length(match)
-    beh = comb(match(a)).beh; 
-    Fs = comb(match(a)).Fs; % sampling frequency
-    iri{a} = diff(beh.hits./Fs); % inter-reward intervals in seconds
-    iri{a} = [beh.hits(1)/Fs; iri{a}]; % add 1st reward delay
-end
+iri = out(choice).iri;
+match = find(strcmp({comb.mouse},thisMouse)); % matching recordings in 'comb' structure
 m = max(cellfun(@max, {comb(match).time})); % recording duration for longest recording
 
 sp(spNum) = subplot(spX, spY, spNum); hold on
-a = 1; scatter(1:length(iri{a}), iri{a}, 'b', 'filled');
-a = 2; scatter(1:length(iri{a}), iri{a}, 'r', 'filled');
-legend({comb(match).date})
+for a = 1:size(iri,1)
+    scatter(1:length(iri{a}), iri{a}, 'filled', ...
+        'MarkerFaceColor', clr(a,:), 'MarkerFaceAlpha', 0.5);
+end
+legend(recs)
 xlabel('trial #'); ylabel('inter-reward interval (s)');
-
-
-%% number of rewards
-
-% barY = []; % clear var
-% for a = 1:length(match) % iterate over all recordings for this unique mouse ID
-%     nHit = length(comb(match(a)).beh.hits); % number of hits
-%     nTrial = size(comb(match(a)).beh.lastAct,1); % number of trials
-%     barY(a,:) = [nHit, nTrial-nHit];
-% end
-% 
-% sp(1) = subplot(spX, spY, 1);
-% b = bar(1:length(match), barY, 'stacked');
-% 
-% legend({'#hits', '#trials - #hits'})
-% xlabel('recording date'); xticklabels({comb(match).date});  
-% ylabel('# hits'); ylim([0 255]);
-% str = sprintf('%s - #hits \n',uni{ii});
-% for a = 1:length(match)
-%     str = [str,sprintf(' day %d: (%d/%d).',a,barY(a,1),sum(barY(a,:)))];
-% end
-% title(str);
