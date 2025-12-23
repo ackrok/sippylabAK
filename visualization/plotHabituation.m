@@ -3,7 +3,6 @@ if ~exist('combBeh','var')
     error('ERROR: run extractComb_beh script first to extract behavioral data into structure.');
 end
 
-<<<<<<< HEAD
 % extract data from .csv files (bonsai output)
 tic
 filename=dir('*StateTransitions.csv');
@@ -13,8 +12,6 @@ beh = extract2AFCdataAK(statetrans);
 toc
 
 %% number of rewards
-=======
-%%
 if numel(unique({combBeh.mouse})) ~= 1
     % if structure contains data from multiple unique mouse IDs then
     % extract rows from structure for a unique mouse into sub-structure
@@ -25,7 +22,6 @@ if numel(unique({combBeh.mouse})) ~= 1
 else
     sub = combBeh; % else plot data from all recordings in combBeh
 end
->>>>>>> c3309eb617fcf1e1f45a6131dd54edad589788e6
 
 %%
 fig = figure;

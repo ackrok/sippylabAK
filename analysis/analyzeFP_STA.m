@@ -14,10 +14,12 @@ function out = analyzeFP_STA(varargin)
 % 'out' - structure with behavior performance metrics
 %   - out(a).mouse   - mouse ID
 %   - out(a).date    - all recording dates
-%   - out(a). - last action taken by mouse for each trial
-%   - out(a). - matrix with licks aligned to each rewarded trial
-%   - out(a). - time to 1st and last rewarded trial, in seconds
-%   - out(a).     - cell array with inter-reward intervals, in seconds
+%   - out(a).sta - table with STA data
+%       - table columns are behavioral events that are aligned to
+%       - example: out(A).sta.('hits'){B, C} is a matrix, where number
+%           of columns is number of events, A is unique mouse ID, B is
+%           index of recording date, and C is index of photometry signal.
+%   - out(a).time - time vector for plotting STA
 %
 % Note: to extract table headers, use headers = T.Properties.VariableNames
 %
@@ -96,6 +98,6 @@ for thisMouse = 1:length(uniMouse)
     end
     out(thisMouse).sta = T;
     out(thisMouse).time = time;
-    out(thisMouse).nFP = nFP;
+    out(thisMouse).nFP = nFP; out(thisMouse).FPnames = comb(1).FPnames;
 end
 
