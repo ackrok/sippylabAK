@@ -19,7 +19,6 @@ choice    = menu('Select mouse to analyze',{out.mouse});
 thisMouse = out(choice).mouse;
 recs      = out(choice).date;
 
-%%
 fig = figure;
 spX = 2; spY = 3;
 clearvars sp
@@ -28,26 +27,9 @@ clr = lines(7); % RGB colors for MATLAB default (parula), for plotting
 %% (1) outcome by trial
 spNum = 1;
 
-<<<<<<< HEAD
 T = out(choice).lastAct; % extract table
 barY = table2array(T); % extract matrix with outcomes by trial
 lbl  = T.Properties.VariableNames; % extract headers
-=======
-barY = nan(length(match),5); % clear var
-barLbl = {'hit R','hit L','miss','noHold','other'};
-for a = 1:length(match) % iterate over all recordings for this unique mouse ID
-    beh = comb(match(a)).beh; 
-    side = [beh.lastAct.lastLick];
-    side = side(beh.lastAct.lastAct == 'Hit');
-    barY(a,1) = length(find(side == "LickRight"));
-    barY(a,2) = length(find(side == "LickLeft"));
-
-    lastAct = [beh.lastAct.lastAct];
-    barY(a,3) = numel(find(strcmp(lastAct, 'Miss')));
-    barY(a,4) = numel(find(strcmp(lastAct, 'IncorrectAction')));
-    barY(a,5) = length(lastAct) - sum(barY(a,1:4));
-end
->>>>>>> c3309eb617fcf1e1f45a6131dd54edad589788e6
 
 sp(spNum) = subplot(spX, spY, spNum);
 bar(1:length(recs), barY, 'stacked')
@@ -70,16 +52,9 @@ lickHit = table2array(T);
 lbl  = T.Properties.VariableNames; % extract headers
 
 sp(spNum) = subplot(spX, spY, spNum); hold on
-<<<<<<< HEAD
 b = 1; % lickRight
 for a = 1:size(lickHit,1)
     shadederrbar(time, nanmean(lickHit{a,b},2), SEM(lickHit{a,b},2), clr(a,:));
-=======
-clr = lines(7);
-b = 1; % lickRight
-for a = 1:size(lickHit,1)
-    shadederrbar(pethTime, nanmean(lickHit{a,b},2), SEM(lickHit{a,b},2), clr(a,:));
->>>>>>> c3309eb617fcf1e1f45a6131dd54edad589788e6
 end
 xline(0);
 xlabel('time to reward (s)'); ylabel('licks (Hz)');
@@ -101,18 +76,10 @@ for a = 1:length(b)
 end
 xlabel('recording date'); xticklabels(recs);  
 ylabel('time to reward (s)');
-<<<<<<< HEAD
 legend(lbl);
 str = 'time to 1st:';
 for a = 1:size(barY,1)
     str = [str,sprintf(' (%d) %d s = %.1f min.', a, round(barY(a,1)), barY(a,1)/60)];
-=======
-legend({'1st reward','last reward'});
-str = sprintf('time to 1st:',uni{choice});
-for a = 1:length(match)
-    str = [str,sprintf(' (%d) %d s = %.1f min.',...
-        a, round(barY(a,1)), barY(a,1)/60)];
->>>>>>> c3309eb617fcf1e1f45a6131dd54edad589788e6
 end
 title(str);
 
@@ -144,7 +111,6 @@ title(str);
 %% (5) inter-reward intervals plotted OVER TIME
 spNum = 5;
 
-<<<<<<< HEAD
 iri = out(choice).iri;
 match = find(strcmp({comb.mouse},thisMouse)); % matching recordings in 'comb' structure
 m = max(cellfun(@max, {comb(match).time})); % recording duration for longest recording
@@ -156,43 +122,3 @@ for a = 1:size(iri,1)
 end
 legend(recs)
 xlabel('trial #'); ylabel('inter-reward interval (s)');
-=======
-iri = cell(length(match),1);
-for a = 1:length(match)
-    beh = comb(match(a)).beh; 
-    Fs = comb(match(a)).Fs; % sampling frequency
-    iri{a} = diff(beh.hits./Fs); % inter-reward intervals in seconds
-    iri{a} = [beh.hits(1)/Fs; iri{a}]; % add 1st reward delay
-end
-
-sp(spNum) = subplot(spX, spY, spNum); hold on
-clr = lines(7);
-for a = 1:length(match)
-    scatter(1:length(iri{a}), iri{a}, 'filled',...
-        'MarkerFaceColor',clr(a,:),'MarkerFaceAlpha',0.5);
-end
-legend({comb(match).date})
-xlabel('trial #'); ylabel('inter-reward interval (s)');
-
-
-%% number of rewards
-
-% barY = []; % clear var
-% for a = 1:length(match) % iterate over all recordings for this unique mouse ID
-%     nHit = length(comb(match(a)).beh.hits); % number of hits
-%     nTrial = size(comb(match(a)).beh.lastAct,1); % number of trials
-%     barY(a,:) = [nHit, nTrial-nHit];
-% end
-% 
-% sp(1) = subplot(spX, spY, 1);
-% b = bar(1:length(match), barY, 'stacked');
-% 
-% legend({'#hits', '#trials - #hits'})
-% xlabel('recording date'); xticklabels({comb(match).date});  
-% ylabel('# hits'); ylim([0 255]);
-% str = sprintf('%s - #hits \n',uni{choice});
-% for a = 1:length(match)
-%     str = [str,sprintf(' day %d: (%d/%d).',a,barY(a,1),sum(barY(a,:)))];
-% end
-% title(str);
->>>>>>> c3309eb617fcf1e1f45a6131dd54edad589788e6

@@ -19,8 +19,9 @@ function out = analyzeBeh_2AFC(comb)
 %   - out(a).iri     - cell array with inter-reward intervals, in seconds
 %
 % Note: to extract table headers, use headers = T.Properties.VariableNames
-
+%
 % Written by Anne Krok, Dec 2025
+%
 
 % Initialize output structure
 out = struct;
