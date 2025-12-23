@@ -142,4 +142,8 @@ str = 'mean IRI:';
 for a = 1:length(sub)
     str = [str,sprintf(' (%d) %.1f sec.', a, iriMean(a))];
 end
+<<<<<<< Updated upstream
 title(str);
+=======
+title(str);
+>>>>>>> Stashed changes
