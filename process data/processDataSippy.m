@@ -77,6 +77,7 @@ try
     beh = alignBehTStoPhotoTS(data, statetrans); % frame relative to photometry signal
     
     data.beh = beh;
+    data.acq.beh = statetrans;
 catch
     fprintf('No behavior data file found. Proceeding without behavioral data.\n');
     data.beh = []; % Initialize behavior data as empty if not found
