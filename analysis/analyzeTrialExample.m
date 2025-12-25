@@ -1,18 +1,18 @@
-function out = analyzeTrialExample(data, varargin)
+function out = analyzeTrialExample(comb, varargin)
 % Photometry dynamics and licks recorded from an example mouse during a 
 % bandit task session. 
 % - For plotting, each row depicts the baselined sensor signal of a trial.
 % - t = 0 reflect trial start time as determined by mouse center poke.
 % - red dots reflect trial end time, aka final correct lick / "hit".
 %
-% out = analyzeTrialExample(data)
-% out = analyzeTrialExample(data, win)
+% out = analyzeTrialExample(comb)
+% out = analyzeTrialExample(comb, win)
 % 
 % NOTE: must run most recent bonsai behavior extraction code, which
 % includes new variables beh.trialStart and beh.trialEnd.
 %
 % INPUTS
-%   'data': data structure with original recording data
+%   'comb': SINGLE RECORDING from combined data structure
 %   'win': window, in seconds, for analysis. Eg, [-1 5]
 %
 % OUTPUTS
@@ -33,12 +33,9 @@ win_base = [win(1)-1 win(1)]; % for baseline adjusting photometry signal
 bin_peth = 0.05; % bin width, in seconds, for aligning licks to events
 
 %% Pull relevant data
-% NOTE: CONSIDER CHANGING TO UTILIZE COMB STRUCTURE INSTEAD
-% signal = comb.FP; FPnames = comb.FPnames; Fs = comb.Fs; beh = comb.beh;
-signal  = data.final.FP; 
-FPnames = data.final.FPnames;
-Fs      = data.gen.Fs; 
-beh     = data.beh;
+signal  = comb.FP; 
+Fs      = comb.Fs; 
+beh     = comb.beh;
 
 %% Behavioral events
 % NOTE: CONSIDER CHANGING TO beh.lightOn for future
@@ -121,9 +118,9 @@ end
 %% store
 a = 1; 
 out = struct;
-out(a).mouse = data.mouse;
-out(a).date = data.date;
-out(a).win = win;
+out(a).mouse = comb.mouse;
+out(a).date  = comb.date;
+out(a).win   = win;
 out(a).evLicks  = evLicks;
 out(a).evPhoto  = evPhoto;
 out(a).evPhotoZ = evPhotoZ;
@@ -132,4 +129,4 @@ out(a).timeSta  = time_sta;
 out(a).hitLat   = hitLatency;
 out(a).idxSide  = idxSide;
 out(a).lblSide  = {'lick R','lick L'};
-out(a).lblPhoto = FPnames;
+out(a).lblPhoto = comb.FPnames; 
