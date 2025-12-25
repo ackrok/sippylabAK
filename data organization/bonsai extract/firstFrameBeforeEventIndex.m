@@ -20,13 +20,15 @@ function fpTS = firstFrameBeforeEventIndex(compTS, timeVector)
 %       immediately BEFORE the behavioral event timestamp
 %
 
-idx = []; c = 1;
+% idx = []; c = 1;
+idx = nan(length(compTS),1); % initiate vector
 framesTS = timeVector;
 for ii = 1:length(compTS)
     FramesB4Evnt = find(framesTS < compTS(ii)); 
     if FramesB4Evnt > 0
-        idx(c) = FramesB4Evnt(end);
-        c = c+1;
+%         idx(c) = FramesB4Evnt(end);
+%         c = c+1;
+        idx(ii) = FramesB4Evnt(end);
     else
         continue
     end

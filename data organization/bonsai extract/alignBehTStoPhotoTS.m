@@ -24,9 +24,24 @@ function [beh] = alignBehTStoPhotoTS(data, statetrans)
 % - 'GoTS': timestamps in computer software clock time of the desired
 %       behavior event(s) from StateTransitions.csv table
 %
+% Anya Krok, December 2025
 
 %%
 statetransTS = table2array(statetrans(:,1));
+
+%% Trial Start
+compTS = statetransTS((statetrans.Id=='ITI'));
+TS = firstFrameBeforeEventIndex(compTS, data.acq.time{1});
+beh.trialStart = TS;
+
+%% Trial End
+compTS = [];
+nTrial = statetrans.Trial(end)+1;
+for n = 1:nTrial
+    compTS(n) = statetransTS(find([statetrans.Trial] == n-1, 1, 'last'));
+end
+TS = firstFrameBeforeEventIndex(compTS, data.acq.time{1});
+beh.trialEnd = TS;
 
 %% Hit
 compTS = statetransTS((statetrans.Id=='Hit')); 

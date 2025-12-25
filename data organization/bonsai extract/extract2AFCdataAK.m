@@ -33,7 +33,17 @@ TS0 = elapTime_0(:); % use elapsed time **CAN CHANGE**
 
 %% 
 % uni = unique(statetrans.Id); % identify unique behavioral event names
-% nTrial = max(statetrans.Trial)+1; % total number of trials
+nTrial = max(statetrans.Trial)+1; % total number of trials
+
+%% TRIAL START
+beh.trialStart = TS0(statetrans.Id == 'ITI');
+
+%% TRIAL END
+idx = nan(nTrial,1);
+for n = 1:nTrial
+    idx(n) = find([statetrans.Trial] == n-1, 1, 'last');
+end
+beh.trialEnd = TS0(idx);
 
 %% HIT
 rowsHit = find(statetrans.Id == 'Hit'); % row index for a Hit
@@ -43,9 +53,6 @@ beh.hits = TS0(rowsHit);
 
 %% MISS
 beh.miss = TS0(statetrans.Id == 'Miss');
-
-%% LIGHT ON -- trial starts
-% ADD LATER
 
 %% LICK: all lick left and all lick rights
 beh.lickLeft = TS0(statetrans.Id == 'LickLeft');

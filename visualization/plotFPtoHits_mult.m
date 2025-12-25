@@ -20,83 +20,85 @@ if ~exist('comb')
 end
 
 %% 
-win = [-1 2]; % STA window, in seconds
-winBase = [-2 -1]; % baseline window, in seconds
+win = [-2 2]; % STA window, in seconds
+winBase = [-3 -2]; % baseline window, in seconds
 
 out = analyzeFP_STA(comb, win, winBase);
 
-nFP = out(1).nFP;
-
-%%
-opts = fieldnames(comb(1).beh); % options are all behavioral events names
-choice = menu('Select analysis',opts);
-lbl = opts{choice}; % name of behavioral event to use for labeling
-
-nFP = length(comb(1).FPnames); FPnames = comb(1).FPnames;
-alignAvg = cell(1,nFP);
-alignAll = cell(length(comb),nFP);
-for a = 1:length(comb) % iterate over recordings
-    for b = 1:nFP % iterate over photometry signals
-        signal = comb(a).FP{b}; % extract signal
-        ev = getfield(comb(a).beh, opts{choice}); % event times as per menu choice
-        ev = ev./comb(a).Fs; % convert to seconds
-        [sta, staTime] = getSTA(signal, ev, comb(a).Fs, winSta);
-        [base]         = getSTA(signal, ev, comb(a).Fs, winBase);    
-        base = nanmean(base,1); % average across entire baseline window to create vector of length(nHits)
-        staAdj = sta - base; % subtract baseline
-        alignAll{a,b} = staAdj; 
-        alignAvg{b}(:,a) = nanmean(staAdj,2);
-    end
-end
-fprintf('STA analysis done.\n')
+time = out.time; % time vector
+nUni = length(out); % number of unique mouse ID
+nFP = out(1).nFP; % number of photometry signals
+FPnames = out(1).FPnames; % photometry signal IDs
 
 %% Plot STA, comparing across recordings per animal
-[uni,~,idxMap] = unique({comb.mouse});
+% Select behavioral event to plot
+opts = out(1).sta.Properties.VariableNames;
+choice = menu('Input',opts);
+thisEv = opts{choice};
 
-FPnames = comb(1).FPnames;
-opts2 = cell(nFP,1);
-for b = 1:nFP; opts2{b} = [FPnames{b},' to ',lbl,', by mouse']; end
-choice2 = listdlg('ListString',opts2);
+opts = cell(nFP,1);
+for b = 1:nFP; opts{b} = [FPnames{b},' to ',thisEv,', by mouse']; end
+choice = listdlg('ListString',opts);
 
-for c = 1:length(choice2)
-    switch choice2(c)
-        case 1
-            b = choice2(c);
-            figure;
-            spX = floor(sqrt(length(uni))); spY = ceil(length(uni)/spX);
-            for ii = 1:length(uni)
-                match = find(strcmp({comb.mouse}, uni{ii})); % idx of recordings with same unique mouse ID
-                pullUni = alignAll(match, b); % build cell array of only recordings from this mouse
-           
-                subplot(spX,spY,ii); hold on
-                clr = lines(7);
-                for a = 1:length(match)
-                    shadederrbar(staTime, nanmean(pullUni{a},2), SEM(pullUni{a},2), clr(a,:));
-                end
-                xline(0);
-                title(sprintf('%s - %s to %s',uni{ii}, FPnames{b}, lbl));
-                xlabel(sprintf('time to %s (s)',lbl)); 
-                ylabel(sprintf('%s (dF/F)',FPnames{b}));
-                legend({comb(match).date}); 
-            end
-        case 2
-            b = choice2(c);
-            figure;
-            spX = floor(sqrt(length(uni))); spY = ceil(length(uni)/spX);
-            for ii = 1:length(uni)
-                match = find(strcmp({comb.mouse}, uni{ii})); % idx of recordings with same unique mouse ID
-                pullUni = alignAll(match, b); % build cell array of only recordings from this mouse
-           
-                subplot(spX,spY,ii); hold on
-                clr = lines(7);
-                for a = 1:length(match)
-                    shadederrbar(staTime, nanmean(pullUni{a},2), SEM(pullUni{a},2), clr(a,:));
-                end
-                xline(0);
-                title(sprintf('%s - %s to %s',uni{ii}, FPnames{b}, lbl));
-                xlabel(sprintf('time to %s (s)',lbl)); 
-                ylabel(sprintf('%s (dF/F)',FPnames{b}));
-                legend({comb(match).date}); 
-            end
+for c = 1:length(choice)
+    figure;
+    spX = floor(sqrt(nUni)); spY = ceil(nUni/spX);
+    clr = lines(7); % color matrix
+
+    idxFP = choice(c); % index for photometry signal
+    for idxMouse = 1:nUni
+        subplot(spX,spY, idxMouse); hold on
+        
+        % iterate over each recording for unique mouse ID
+        for idxRec = 1:length(out(idxMouse).recs) 
+            pullSta = out(idxMouse).sta.(thisEv){idxRec,idxFP};
+            shadederrbar(time, nanmean(pullSta,2), SEM(pullSta,2), clr(a,:));
+        end
+        xline(0);
+        title(sprintf('%s - %s to %s',out(idxMouse).mouse, FPnames{idxFP}, thisEv));
+        xlabel(sprintf('time to %s (s)',thisEv)); 
+        ylabel(sprintf('%s (dF/F)',FPnames{idxFP}));
+        legend(out(idxMouse).recs); 
     end
 end
+
+
+    % switch choice(c)
+    %    case 1
+            % idxFP = choice(c); % index for photometry signal
+            % figure;
+            % spX = floor(sqrt(nUni)); spY = ceil(nUni/spX);
+            % clr = lines(7); % color matrix
+            % for ii = 1:nUni
+            %     subplot(spX,spY,ii); hold on
+            % 
+            %     for a = 1:length(out(ii).recs) % iterate over each recording for unique mouse ID
+            %         pullSta = out(ii).sta.(thisEv){a,idxFP};
+            %         shadederrbar(time, nanmean(pullSta,2), SEM(pullSta,2), clr(a,:));
+            %     end
+            %     xline(0);
+            %     title(sprintf('%s - %s to %s',out(ii).mouse, FPnames{idxFP}, thisEv));
+            %     xlabel(sprintf('time to %s (s)',thisEv)); 
+            %     ylabel(sprintf('%s (dF/F)',FPnames{idxFP}));
+            %     legend(out(ii).recs); 
+            % end
+    %    case 2
+            % b = choice(c); % index for photometry signal
+            % figure;
+            % spX = floor(sqrt(nUni)); spY = ceil(nUni/spX);
+            % clr = lines(7); % color matrix
+            % for ii = 1:nUni
+            %     subplot(spX,spY,ii); hold on
+            % 
+            %     for a = 1:length(out(ii).recs) % iterate over each recording for unique mouse ID
+            %         pullSta = out(ii).sta.(thisEv){a,b};
+            %         shadederrbar(time, nanmean(pullSta,2), SEM(pullSta,2), clr(a,:));
+            %     end
+            %     xline(0);
+            %     title(sprintf('%s - %s to %s',out(ii).mouse, FPnames{b}, thisEv));
+            %     xlabel(sprintf('time to %s (s)',thisEv)); 
+            %     ylabel(sprintf('%s (dF/F)',FPnames{b}));
+            %     legend(out(ii).recs); 
+            % end
+    % end
+% end

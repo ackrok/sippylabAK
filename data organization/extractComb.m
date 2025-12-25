@@ -22,11 +22,11 @@ function comb = extractComb(varargin)
 %% INPUTS
 switch nargin
     case 0
-        [fName,fPath] = uigetfile('*.mat','Select the DATA files','MultiSelect','on');
+        [fileName,filePath] = uigetfile('*.mat','Select the DATA files','MultiSelect','on');
     case 2
-        fName = varargin{1}; 
+        fileName = varargin{1}; 
         filePath = varargin{2};
-        if ~iscell(fName); fName = {fName}; end
+        if ~iscell(fileName); fileName = {fileName}; end
 end
     
 %% Extract data
@@ -40,7 +40,7 @@ for a = 1:length(fileName)
     comb(a).rec   = data.ID; % recording ID
     comb(a).FPnames = data.final.FPnames;
     comb(a).FP = data.final.FP;
-    % comb(a).time = data.final.time;
+    comb(a).time = data.final.time;
     comb(a).Fs = data.gen.Fs;
     comb(a).beh = data.beh;
     toc

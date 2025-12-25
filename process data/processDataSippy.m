@@ -71,11 +71,16 @@ data.gen.params = params;
 % beh.LR_R = beh.LR_R(:); beh.pokeRate = beh.pokeRate(:); beh.rewLatency = beh.rewLatency(:); % make column vectors
 
 % align time stamps for behavioral events (hits) to photometry time stamps
-filename=dir('*StateTransitions.csv');
-statetrans=GetBonsai_Pho_StateTransitions_Celeste(filename.name);
-beh = alignBehTStoPhotoTS(data, statetrans); % frame relative to photometry signal
-
-data.beh = beh; 
+try 
+    filename=dir('*StateTransitions.csv');
+    statetrans=GetBonsai_Pho_StateTransitions_Celeste(filename.name);
+    beh = alignBehTStoPhotoTS(data, statetrans); % frame relative to photometry signal
+    
+    data.beh = beh;
+catch
+    fprintf('No behavior data file found. Proceeding without behavioral data.\n');
+    data.beh = []; % Initialize behavior data as empty if not found
+end
 
 %% SAVE
 saveName = sprintf('%s-%s_data.mat',data.mouse,data.date);

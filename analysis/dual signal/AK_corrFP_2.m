@@ -1,130 +1,104 @@
-function [corr_output, lags, shuff_output] = AK_corrFP_2(beh, varargin)
+function [out] = AK_corrFP_2(comb, varargin)
 %Cross-correlation between two photometry signals acquired during
 %dual color photometry recordings
 %
-%   [corr_output, lags] = AK_corrFP(beh)
-%   [corr_output, lags] = AK_corrFP(beh, win)
-%   [corr_output, lags, shuff_achda, min_val, min_lag] = AK_corrFP(beh)
+%   [out] = AK_corrFP_2(comb)
+%   [out] = AK_corrFP_2(comb, win)
 %
 %   Description: This function is for running cross-correlation analysis on
 %   two continuous photometry signals using the MATLAB 'xcorr'
 %
 %   INPUTS
-%   'beh' - structure with photometry and behavioral data for multiple
-%   recordings, should include beh(x).rec as [an,'-',day]
-%   'win'(optional) - window to restrict analysis to, in seconds
+%   'comb' - structure with photometry data
+%   'win' (optional) - window to restrict analysis to, in seconds
 %   
 %   OUTPUTS
-%   'corr_achda' - cross-correlation between two FP signals, normalized
-%   using coeff scaling to approximate Pearson's coefficient, r.
-%   'lags' - vector of lag indices from +/- 5 seconds, in samples
-%   'shuff_achda' - 5th, 50th, 95th percentiles for cross-correlation run
-%   on shuffled photometry signals
-%       shuff_achda{x,1} is 5th percentile
-%       shuff_achda{x,2} is 50th percentile
-%       shuff_achda{x,3} is 95th percentile
+%   'out' - structure with analysis output
+%       - 'lags' - vector of lag indices, in seconds
+%       - 'corr' - cross-correlation between two FP signals, normalized
+%           using coeff scaling to approximate Pearson's coefficient, r
+%       - 'shuff' - table with output run on shuffled signal, includes
+%           5th, 50th, 95th percentile
 %
 %   Author: Anya Krok, December 2021
 %   Updated: Anya Krok, Decemebr 2025
 
 %% INPUTS
-if nargin == 2; win = varargin{1}; end % Window for analysis, in seconds
-y = [2 1]; % Photometry signal to use as reference is the one listed first
-% e.g. if y = [1 2] then the signal in beh(x).FP{1} will be used as
-% reference signal, while if y = [2 1] then the signal in beh(x).FP{2} will
-% be used as reference signal instead
-% Default from Krok 2022 is to use y = [2 1] so that rDA1m photometry
-% signal is the reference signal
-winCorr = 5; % Window, in seconds, to run cross-correlation on
+switch nargin
+    case 2
+        winCorr = varargin{1};
+    case 1
+        winCorr = 5; % Window for analysis, in seconds
+end
+
+% Default is to use photometry signal with 2nd index as reference.
+% In Krok 2023 paper, rDA1m photometry signal used as reference and this
+% was beh(x).FP{2}. 
+
+nShuff = 50; % Set shuffle repeat number
 
 %% OUTPUTS
-% mat = struct; % temporary output structure
-corr_cell = cell(1,4); % temporary output cell array
-a = 1; % for a = 1:3
-    for b = 1:4
-        corr_cell{a,b} = nan((winCorr*2*50)+1,length(beh)); % fill cell array with nan's
-    end
-% end 
+corr_byMouse = cell(1,4); % Initiate temporary output cell array
+m = (winCorr*2*50)+1; n = length(comb); % Size of expected output
+corr_byMouse = cellfun(@(x) nan(m,n), corr_byMouse, 'UniformOutput', false);
 
 %% RUN ANALYSIS ON ALL RECORDINGS
-h = waitbar(0, 'cross correlation');
-% idxStates = extractBehavioralStates(beh);
-% nStates = 3;
-for x = 1:length(beh) % iterate over all recordings
+for x = 1:length(comb) % iterate over all recordings
     
-    %% extract signals
+    % Extract signals and center
     fp_mat = [];
-    fp_mat(:,1) = beh(x).FP{y(1)}; Fs = beh(x).Fs; % extract photometry signal from structure, which will be used as reference
-    fp_mat(:,1) = fp_mat(:,1) - nanmean(fp_mat(:,1)); % subtract baseline (mean of entire photometry signal) from fp
-    fp_mat(:,2) = beh(x).FP{y(2)}; % extract photometry signal from structure
-    fp_mat(:,2) = fp_mat(:,2) - nanmean(fp_mat(:,2)); % subtract baseline (mean of entire photometry signal) from fp
+    Fs = comb(x).Fs; % sampling frequency
+    fp_mat = cell2mat(comb(x).FP'); % extract photometry signal
+    fp_mat = fp_mat - nanmean(fp_mat,1); % center on zero
     
-    %% adjust indices to retain if within specified window
-    % if nargin == 2
-    %     for z = 1:nStates
-    %         idxTmp = idxStates{x,z};
-    %         idxTmp = idxTmp(idxTmp > win(1)*Fs & idxTmp < win(2)*Fs); % retain only indices that are within specified window
-    %         if ~isempty(idxTmp)
-    %             needL = 200.*Fs;
-    %             if length(idxTmp) < needL % ensure that have at least 200 seconds of signal
-    %                 idxTmp = repmat(idxTmp, [ceil(needL/length(idxTmp)) 1]); % duplicate indices to lengthen signal for processing
-    %             end
-    %         end
-    %         idxStates{x,z} = idxTmp; % re-insert into output structure
-    %     end
-    % end
-    
-    %%
-    fp_sub = [];
-    z = 1;  % for z = 1:nStates
-        % if length(idxStates{x,z})< 2; continue; end
-        % fp_sub = fp_mat(idxStates{x,z},:); % signal
-        % fp_sub = normalize(fp_mat,1,'range'); % normalize [0 1]
-        % fp_sub = fp_filt(idx_cell{z},:); % bandpass filtered signal
-        
-        fp_sub = fp_mat; % Assign the filtered photometry signals for analysis
-        % [xcf, lags, bounds] = crosscorr(fp_sub(:,1), fp_sub(:,2),'NumLags',100,'NumSTD',3);
-        % [shuff,~,~] = crosscorr(fp_sub(randperm(size(fp_sub,1)),1), fp_sub(randperm(size(fp_sub,2)),2),'NumLags',100,'NumSTD',3);
-        [corr_tmp, lags] = xcorr(fp_sub(:,1), fp_sub(:,2), winCorr*Fs, 'coeff'); % cross-correlation
-        
-        fp_sub_new = fp_sub(:,2);
-        tmp_shuff = []; 
-        for s = 1:50
-            fp_sub_new = circshift(fp_sub_new, Fs);
-            % tmp_shuff(:,s) = xcorr(fp_sub(randperm(size(fp_sub,1)),1), fp_sub(randperm(size(fp_sub,2)),2), 10*Fs, 'coeff');
-            % tmp_shuff(:,s) = xcorr(fp_sub(:,1), fp_sub(randperm(size(fp_sub,2)),2), 10*Fs, 'coeff');
-            tmp_shuff(:,s) = xcorr(fp_sub(:,1), fp_sub_new, winCorr*Fs, 'coeff');
-        end
-        corr_cell{z,1}(:,x) = corr_tmp;       % cross-correlation
-        corr_cell{z,2}(:,x) = prctile(tmp_shuff, 5, 2); % shuffle 5th percentile
-        corr_cell{z,3}(:,x) = prctile(tmp_shuff, 50, 2); % shuffle 50th percentile
-        corr_cell{z,4}(:,x) = prctile(tmp_shuff, 95, 2); % shuffle 95th percentile
-    % end
-    
-%%
-    waitbar(x/length(beh),h);
+    % Cross-correlation
+    [corr_tmp, lags] = xcorr(fp_mat(:,1), fp_mat(:,2), winCorr*Fs, 'coeff'); % cross-correlation
+    % [xcf, lags, bounds] = crosscorr(fp_sub(:,1), fp_sub(:,2),'NumLags',100,'NumSTD',3);
+    % [shuff,~,~] = crosscorr(fp_sub(randperm(size(fp_sub,1)),1), fp_sub(randperm(size(fp_sub,2)),2),'NumLags',100,'NumSTD',3);
+      
+    % Shuffle photometry signal and repeat
+    fp_forShuff = fp_mat(:,2); % use photometry signal with 2nd index for shuffling
+    tmp_shuff = []; 
+    for s = 1:nShuff
+        fp_forShuff = circshift(fp_forShuff, Fs); % shift signal by 1x sampling frequency
+        % tmp_shuff(:,s) = xcorr(fp_sub(randperm(size(fp_sub,1)),1), fp_sub(randperm(size(fp_sub,2)),2), 10*Fs, 'coeff');
+        % tmp_shuff(:,s) = xcorr(fp_sub(:,1), fp_sub(randperm(size(fp_sub,2)),2), 10*Fs, 'coeff');
+        tmp_shuff(:,s) = xcorr(fp_mat(:,1), fp_forShuff, winCorr*Fs, 'coeff');
+    end
+
+    % Store in output cell array
+    corr_byMouse{1}(:,x) = corr_tmp;       % cross-correlation
+    corr_byMouse{2}(:,x) = prctile(tmp_shuff, 5, 2); % shuffle 5th percentile
+    corr_byMouse{3}(:,x) = prctile(tmp_shuff, 50, 2); % shuffle 50th percentile
+    corr_byMouse{4}(:,x) = prctile(tmp_shuff, 95, 2); % shuffle 95th percentile
+   
 end
-close(h);
 
 %% AVERAGE ACROSS ALL RECORDINGS FOR ONE ANIMAL SUCH THAT N = X mice
-rec = {}; for x = 1:length(beh); rec{x} = strtok(beh(x).rec,'-'); end
-uni = unique(rec); 
+uni = unique({comb.mouse}); 
 nAn = length(uni); % number of unique animal IDs
 
-corr_output = cell(3,1); % initialize output
-shuff_output = cell(3,3); % initialize output 
+corr_byUni = cell(1,4); % Initiate temporary output cell array
+m = (winCorr*2*50)+1; n = length(comb); % Size of expected output
+corr_byUni = cellfun(@(x) nan(m,n), corr_byUni, 'UniformOutput', false);
 
 for x = 1:nAn
-    idx = strcmp(rec,uni{x}); % match animal ID to recordings
-    z = 1; % for z = 1:nStates % iterate over behavioral states
-        corr_adj = corr_cell{z,1}; % extract cross-correlation output for this behavioral state
-        corr_adj = corr_adj - nanmean(corr_adj(1:find(lags./Fs == -2),:)); % adjust such that baseline outside of +/- 2s is at zero
-        corr_output{z,1}(:,x) = nanmean(corr_adj(:,idx),2); % average across all recordings for this animal
-        for b = 2:4 % iterate over shuffle percentiles
-            corr_adj = corr_cell{z,b};
-            shuff_output{z,b-1} = nanmean(corr_adj(:,idx),2); % average across all recordings for this animal
-        end
-    % end
+    idx = strcmp({comb.mouse},uni{x}); % match animal ID to recordings
+    for b = 1:4 % iterate over actual output and shuffled output
+        pull = corr_byMouse{b}(:,idx); % extract output for all matching recordings
+        base = pull(1:find(lags./Fs == -2),:); % baseline [-5 -2]
+        base = nanmean(base,1); % baseline
+        pull = pull - base;
+        corr_byUni{b}(:,x) = nanmean(pull,2); % average across all recordings for this animal
+    end
 end
+
+%% OUTPUT
+out = struct;
+out.lags = lags(:)/Fs;
+out.corr = corr_byUni{1};
+out.shuff5 = corr_byUni{2};
+out.shuff50 = corr_byUni{3};
+out.shuff95 = corr_byUni{4};
 
 end
