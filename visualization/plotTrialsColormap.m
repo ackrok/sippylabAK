@@ -4,7 +4,12 @@
 % - t = 0 reflect trial start time as determined by mouse center poke.
 % - red dots reflect trial end time, aka final correct lick / "hit".
 
-out = analyzeTrialExample(data);
+if ~exist('out','var') || exist('out','var') && ~isfield(out,'evLicks')
+    a = 1;
+    win = [-1 5];
+    out = analyzeTrialExample(comb(a), win);
+end
+
 
 %% Plot licks to behavioral event
 figure; 
