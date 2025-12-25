@@ -26,7 +26,7 @@ for s = 1:2
     xline(0,'LineWidth',2); % xline at 0, representing trial start
     scatter(hitLat(idx), 1:nSide, 10, 'filled', 'r'); % plot hit licks
     ylabel('trial (#)'); ylim([0 nSide]); xlim(out.win);
-    title(out.lblSide{s});
+    title([out.lblSide{s},' - rewarded']);
 end
 
 %% Plot photometry signals to behavioral event
