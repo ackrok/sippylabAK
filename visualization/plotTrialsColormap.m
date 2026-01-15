@@ -14,19 +14,24 @@ end
 %% Plot licks to behavioral event
 figure; 
 for s = 1:2
-    mat     = out.evLicks{s}; % licks aligned to event for this port
-    nSide   = length(out.idxSide{s}); % number of hits at this port
-    hitLat  = out.hitLat(out.idxSide{s}); % hitLatency only for this port
-    [~,idx] = sort(hitLat); % sort by latency
-    
-    subplot(2,2,s); hold on
-    [X, Y] = meshgrid(out.timePeth, 1:nSide);
-    pcolor(X, Y, mat(:,idx)', 'EdgeColor', 'none'); % colorplot
-    c = colorbar; c.Label.String = 'licks';
-    xline(0,'LineWidth',2); % xline at 0, representing trial start
-    scatter(hitLat(idx), 1:nSide, 10, 'filled', 'r'); % plot hit licks
-    ylabel('trial (#)'); ylim([0 nSide]); xlim(out.win);
-    title([out.lblSide{s},' - rewarded']);
+    try
+        mat     = out.evLicks{s}; % licks aligned to event for this port
+        nSide   = length(out.idxSide{s}); % number of hits at this port
+        hitLat  = out.hitLat(out.idxSide{s}); % hitLatency only for this port
+        [~,idx] = sort(hitLat); % sort by latency
+        
+        subplot(2,2,s); hold on
+        [X, Y] = meshgrid(out.timePeth, 1:nSide);
+        pcolor(X, Y, mat(:,idx)', 'EdgeColor', 'none'); % colorplot
+        c = colorbar; c.Label.String = 'licks';
+        xline(0,'LineWidth',2); % xline at 0, representing trial start
+        scatter(hitLat(idx), 1:nSide, 10, 'filled', 'r'); % plot hit licks
+        ylabel('trial (#)'); ylim([0 nSide]); xlim(out.win);
+        title([out.lblSide{s},' - rewarded']);
+    catch
+        fprintf('Unable to plot %s. \n', out.lblSide{s});
+        delete(subplot(2,2,s));
+    end
 end
 
 %% Plot photometry signals to behavioral event
