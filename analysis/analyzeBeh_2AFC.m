@@ -47,11 +47,27 @@ for thisMouse = 1:length(uniMouse)
     hitTime = nan(length(match),2);
     hitTimeLbl = {'1st reward','last reward'};
     iri = cell(length(match),1);
+    endTime = []; 
 
     for a = 1:length(match)
+        mouse = comb(match(a)).mouse; % Store to be able to check in case of errors 
+        date = comb(match(a)).date; % Store to be able to check in case of errors
         beh = comb(match(a)).beh; % Behavioral data for one recording
-        Fs = comb(match(a)).Fs; % Sampling frequency
-        mouse = comb(match(a)).mouse; date = comb(match(a)).date; % Store to be able to check in case of errors
+        % Adjustment to ensure data is in seconds to match windows for analysis
+            % IF data includes behavior and photometry data, then behavior
+            % data such as licks is in samples and need to convert to sec
+            % so set adj = Fs (sampling frequency).
+            % IF data is behavior only, then is already in seconds so will
+            % set adj = 1.
+            % Detemine based on whether values in lick vector are integers,
+            % as if they are all integers then are likely in samples but if
+            % are non-integers then are likely all in seconds.
+        switch isVecInteger(beh.lickCenter) % Checking lickCenter vector
+            case true
+                adj = comb(match(a)).Fs; % Sampling frequency
+            case false
+                adj = 1;  % Data is already in seconds
+        end
 
         % Loop through each trial to first identify outcome
         % Possible outcomes: Hit, with either LickRight or LickLeft being
@@ -68,18 +84,21 @@ for thisMouse = 1:length(uniMouse)
         trialOutcome(a, 5) = length(lastAct) - sum(trialOutcome(a,1:4));
     
         % Generate matrix of licks aligned to rewarded Hit trials
-        pethR = getClusterPETH(beh.lickRight./Fs, beh.hits./Fs, lickBin, lickWin);
-        pethL = getClusterPETH(beh.lickLeft./Fs,  beh.hits./Fs, lickBin, lickWin);
+        pethR = getClusterPETH(beh.lickRight./adj, beh.hits./adj, lickBin, lickWin);
+        pethL = getClusterPETH(beh.lickLeft./adj,  beh.hits./adj, lickBin, lickWin);
         lickHit{a, 1} = pethR.cts{1}; % Store lick data for right trials
         lickHit{a, 2} = pethL.cts{1};  % Store lick data for left trials
     
         % Extract timing of 1st and last rewards
-        hitTime(a,1) = beh.hits(1)/Fs; % time to 1st reward, in seconds
-        hitTime(a,2) = beh.hits(end)/Fs; % time to last reward, in seconds
+        hitTime(a,1) = beh.hits(1)/adj; % time to 1st reward, in seconds
+        hitTime(a,2) = beh.hits(end)/adj; % time to last reward, in seconds
 
         % Inter-reward intervals
-        iri{a} = diff(beh.hits./Fs); % inter-hit intervals, in seconds
-        iri{a} = [beh.hits(1)/Fs; iri{a}]; % add delay to 1st reward
+        iri{a} = diff(beh.hits./adj); % inter-hit intervals, in seconds
+        iri{a} = [beh.hits(1)/adj; iri{a}]; % add delay to 1st reward
+
+        % Last time stamp
+        endTime(a) = beh.trialEnd(end);
     end
    
     % Load into output structure
@@ -93,6 +112,7 @@ for thisMouse = 1:length(uniMouse)
     out(thisMouse).hitTime = array2table(hitTime, ...
         'VariableNames', hitTimeLbl);
     out(thisMouse).iri = iri;
+    out(thisMouse).endTime = endTime;
 
 end
    

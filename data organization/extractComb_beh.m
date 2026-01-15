@@ -62,8 +62,9 @@ for a = 1:length(filePath)
 
     b = size(comb,2); if isempty(fieldnames(comb)); b = 0; end
     comb(b+1).mouse = mouse; 
-    comb(b+1).date = date;
-    comb(b+1).beh = beh; % Store behavioral data in the structure
+    comb(b+1).date  = date;
+    comb(b+1).Fs    = 50;
+    comb(b+1).beh   = beh; % Store behavioral data in the structure
     toc
     fprintf('Extracted behavioral data for: %s-%s \n',mouse,date);
 end

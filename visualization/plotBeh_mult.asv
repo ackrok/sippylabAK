@@ -113,6 +113,8 @@ spNum = 5;
 
 iri = out(choice).iri;
 % m = max(cellfun(@numel, out.iri)); % max # trials
+% match = find(strcmp({comb.mouse},thisMouse)); % matching recordings in 'comb' structure
+% m = max(cellfun(@max, {comb(match).time})); % recording duration for longest recording
 
 sp(spNum) = subplot(spX, spY, spNum); hold on
 for a = 1:size(iri,1)

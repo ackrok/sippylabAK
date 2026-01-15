@@ -1,5 +1,5 @@
 %%
-if ~exist('combBeh','var')
+if ~exist('comb','var')
     error('ERROR: run extractComb_beh script first to extract behavioral data into structure.');
 end
 
@@ -12,15 +12,15 @@ beh = extract2AFCdataAK(statetrans);
 toc
 
 %% number of rewards
-if numel(unique({combBeh.mouse})) ~= 1
+if numel(unique({comb.mouse})) ~= 1
     % if structure contains data from multiple unique mouse IDs then
     % extract rows from structure for a unique mouse into sub-structure
-    [uni,~,idxMap] = unique({combBeh.mouse});
+    [uni,~,idxMap] = unique({comb.mouse});
     choice = menu('Select mouse to analyze',uni);
-    match = find(strcmp({combBeh.mouse},uni{choice}));
-    sub = combBeh(match);
+    match = find(strcmp({comb.mouse},uni{choice}));
+    sub = comb(match);
 else
-    sub = combBeh; % else plot data from all recordings in combBeh
+    sub = comb; % else plot data from all recordings in comb
 end
 
 %%
