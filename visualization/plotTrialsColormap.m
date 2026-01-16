@@ -10,7 +10,6 @@ if ~exist('out','var') || exist('out','var') && ~isfield(out,'evLicks')
     out = analyzeTrialExample(comb(a), win);
 end
 
-
 %% Plot licks to behavioral event
 figure; 
 for s = 1:2
@@ -32,6 +31,20 @@ for s = 1:2
         fprintf('Unable to plot %s. \n', out.lblSide{s});
         delete(subplot(2,2,s));
     end
+    mat     = out.evLicks{s}; % licks aligned to event for this port
+    nSide   = length(out.idxSide{s}); % number of hits at this port
+    hitLat  = out.hitLat(out.idxSide{s}); % hitLatency only for this port
+    [~,idx] = sort(hitLat); % sort by latency
+    if nSide == 0; continue; end % exit loop if no data
+    
+    subplot(2,2,s); hold on
+    [X, Y] = meshgrid(out.timePeth, 1:nSide);
+    pcolor(X, Y, mat(:,idx)', 'EdgeColor', 'none'); % colorplot
+    c = colorbar; c.Label.String = 'licks';
+    xline(0,'LineWidth',2); % xline at 0, representing trial start
+    scatter(hitLat(idx), 1:nSide, 10, 'filled', 'r'); % plot hit licks
+    ylabel('trial (#)'); ylim([0 nSide]); xlim(out.win);
+    title([out.lblSide{s},' - rewarded']);
 end
 
 %% Plot photometry signals to behavioral event
@@ -49,5 +62,5 @@ for b = 1:2
     scatter(hitLat(idx), 1:nHits, 10, 'filled', 'r');
     ylabel('trial (#)'); ylim([0 nHits]); xlim(out.win);
     xlabel('time to center poke (s)'); 
-    title(out.lblPhoto{b});
+    title(sprintf('%s-%s: %s',out.mouse,out.date,out.lblPhoto{b}));
 end
