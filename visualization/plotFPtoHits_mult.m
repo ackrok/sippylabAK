@@ -20,8 +20,8 @@ if ~exist('comb')
 end
 
 %% 
-win = [-2 2]; % STA window, in seconds
-winBase = [-3 -2]; % baseline window, in seconds
+win = [-1 5]; % STA window, in seconds
+winBase = [win(1)-1, win(1)]; % baseline window, in seconds
 
 out = analyzeFP_STA(comb, win, winBase);
 
@@ -52,7 +52,7 @@ for c = 1:length(choice)
         % iterate over each recording for unique mouse ID
         for idxRec = 1:length(out(idxMouse).recs) 
             pullSta = out(idxMouse).sta.(thisEv){idxRec,idxFP};
-            shadederrbar(time, nanmean(pullSta,2), SEM(pullSta,2), clr(a,:));
+            shadederrbar(time, nanmean(pullSta,2), SEM(pullSta,2), clr(idxRec,:));
         end
         xline(0);
         title(sprintf('%s - %s to %s',out(idxMouse).mouse, FPnames{idxFP}, thisEv));

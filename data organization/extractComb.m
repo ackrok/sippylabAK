@@ -33,6 +33,7 @@ end
 comb = struct; % Initialize
 
 for a = 1:length(fileName)
+    fprintf('%d of %d...',a,length(fileName));
     tic
     load(fullfile(filePath, fileName{a})); % load each .mat file
     comb(a).mouse = data.mouse; % store the loaded data in the structure
@@ -46,5 +47,5 @@ for a = 1:length(fileName)
     toc
 end
 
-save(fullfile(filePath,['combinedData_',char(datetime("today")),'.mat']),'comb');
+save(fullfile(filePath,['comb_',char(datetime("today")),'.mat']),'comb');
 fprintf('SAVED comb.mat in filePath \n');
